@@ -1,0 +1,60 @@
+import logging
+from typing import Dict, Optional
+
+from aiortc import RTCPeerConnection
+from fastapi import WebSocket
+
+logger = logging.getLogger(__name__)
+
+
+class ConnectionManager:
+    """Tracks active WebSocket connections and associated RTCPeerConnections."""
+
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+        self.peer_connections: Dict[str, RTCPeerConnection] = {}
+
+    async def connect(self, websocket: WebSocket, client_id: str) -> None:
+        """Accept a WebSocket connection and register it."""
+        await websocket.accept()
+        self.active_connections[client_id] = websocket
+        logger.info(
+            "Client %s connected. Total: %d", client_id, len(self.active_connections)
+        )
+
+    def disconnect(self, client_id: str) -> Optional[RTCPeerConnection]:
+        """Remove a client and its peer connection (if any). Returns the removed RTCPeerConnection."""
+        self.active_connections.pop(client_id, None)
+        pc = self.peer_connections.pop(client_id, None)
+
+        if pc:
+            # Async close should be handled elsewhere
+            logger.info("Closed RTCPeerConnection for %s", client_id)
+
+        logger.info(
+            "Client %s disconnected. Remaining: %d",
+            client_id,
+            len(self.active_connections),
+        )
+        return pc
+
+    async def send_message(self, client_id: str, message: dict) -> None:
+        """Send a JSON message to a specific client."""
+        ws = self.active_connections.get(client_id)
+        if ws:
+            try:
+                await ws.send_json(message)
+            except Exception as e:
+                logger.error("Failed to send message to %s: %s", client_id, e)
+
+    async def broadcast(self, message: dict) -> None:
+        """Send a message to all connected clients."""
+        for client_id, ws in self.active_connections.items():
+            try:
+                await ws.send_json(message)
+            except Exception as e:
+                logger.error("Failed to broadcast to %s: %s", client_id, e)
+
+
+# Singleton instance
+manager = ConnectionManager()
