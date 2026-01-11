@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { FacialLandmarkOverlay } from './facial-landmark-overlay';
 import { SessionState } from '@/hooks/useMonitoringSession';
+import { Button } from '@/components/ui/button';
+import { Text } from '@/components/ui/text';
 
 type MediaStreamViewProps = {
   stream: MediaStream | null;
@@ -16,7 +18,7 @@ type MediaStreamViewProps = {
 };
 
 /**
- * Displays a MediaStream (camera view) with overlay.
+ * Displays a MediaStream (camera view) with optional overlay.
  */
 export const MediaStreamView = ({
   stream,
@@ -26,6 +28,7 @@ export const MediaStreamView = ({
   mirror = true,
 }: MediaStreamViewProps) => {
   const [viewDimensions, setViewDimensions] = useState({ width: 0, height: 0 });
+  const [showOverlay, setShowOverlay] = useState(true);
 
   if (!stream) return null;
 
@@ -35,7 +38,7 @@ export const MediaStreamView = ({
 
   // Determine whether to show landmarks
   const shouldShowLandmarks =
-    stream &&
+    showOverlay &&
     sessionState === 'active' &&
     landmarks != null &&
     viewDimensions.width > 0 &&
@@ -65,6 +68,17 @@ export const MediaStreamView = ({
           mirror={mirror}
         />
       )}
+
+      {/* Toggle button for overlay */}
+      <View className="absolute bottom-3 right-3">
+        <Button
+          size="sm"
+          variant="secondary"
+          className="p-2"
+          onPress={() => setShowOverlay((v) => !v)}>
+          <Text className="text-xs">{showOverlay ? 'Hide overlay' : 'Show overlay'}</Text>
+        </Button>
+      </View>
     </View>
   );
 };
