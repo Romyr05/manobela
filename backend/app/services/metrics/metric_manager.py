@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict
 
 from app.services.metrics.base_metric import BaseMetric
+from app.services.metrics.eye_closure import EyeClosureMetric
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class MetricManager:
     def __init__(self):
         # Register metrics here
         self.metrics: list[BaseMetric] = [
+            EyeClosureMetric(),
             # Add more metrics here
         ]
 
