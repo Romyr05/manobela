@@ -46,7 +46,8 @@ async def lifespan(app: FastAPI):
         # Close face landmarker
         if getattr(app.state, "face_landmarker", None):
             try:
-                app.state.face_landmarker.close()
+                if hasattr(app.state.face_landmarker, "close"):
+                    app.state.face_landmarker.close()
             except Exception as e:
                 logger.error("Error closing FaceLandmarker: %s", e)
             finally:
