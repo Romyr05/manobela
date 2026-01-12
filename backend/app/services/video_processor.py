@@ -8,7 +8,6 @@ import mediapipe as mp
 
 from app.models.inference import InferenceData, Resolution
 from app.services.connection_manager import ConnectionManager
-from app.services.face_landmarker import FaceLandmarker
 from app.services.face_landmarks import ESSENTIAL_LANDMARKS
 from app.services.smoother import Smoother
 
@@ -23,7 +22,7 @@ RENDER_LANDMARKS_FULL = False  # Option to render all landmarks or only essentia
 def process_video_frame(
     timestamp: str,
     img_bgr,
-    face_landmarker: FaceLandmarker,
+    face_landmarker,
     smoother: Smoother,
 ) -> InferenceData:
     """
@@ -72,7 +71,7 @@ def process_video_frame(
 async def process_video_frames(
     client_id: str,
     track,
-    face_landmarker: FaceLandmarker,
+    face_landmarker,
     connection_manager: ConnectionManager,
 ) -> None:
     """
