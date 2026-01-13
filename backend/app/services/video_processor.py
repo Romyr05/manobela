@@ -63,8 +63,9 @@ def process_video_frame(
             for coord in (face_landmarks[idx].x, face_landmarks[idx].y)
         ]
 
-    # Update metrics using full landmarks
-    metrics = metric_manager.update({"landmarks": raw_landmarks})
+    # Update metrics
+    frame_data = {"landmarks": raw_landmarks} if raw_landmarks else {}
+    metrics = metric_manager.update(frame_data)
 
     # Apply smoothing
     smoothed_landmarks = (

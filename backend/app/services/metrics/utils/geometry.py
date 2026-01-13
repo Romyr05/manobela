@@ -1,4 +1,4 @@
-import numpy as np
+from math import hypot
 
 
 def euclidean_dist(a: tuple[float, float], b: tuple[float, float]) -> float:
@@ -12,4 +12,4 @@ def euclidean_dist(a: tuple[float, float], b: tuple[float, float]) -> float:
     Returns:
         Euclidean distance between points
     """
-    return float(np.linalg.norm(np.array(a) - np.array(b)))
+    return hypot(a[0] - b[0], a[1] - b[1])

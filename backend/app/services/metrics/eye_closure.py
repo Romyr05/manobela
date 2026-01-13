@@ -1,8 +1,11 @@
+import logging
 from collections import deque
 from typing import Any, Dict, List, Optional
 
 from app.services.metrics.base_metric import BaseMetric
 from app.services.metrics.utils.ear import average_ear
+
+logger = logging.getLogger(__name__)
 
 
 class EyeClosureMetric(BaseMetric):
@@ -42,7 +45,8 @@ class EyeClosureMetric(BaseMetric):
         # Computer EAR
         try:
             ear_value = average_ear(landmarks)
-        except Exception:
+        except (IndexError, ZeroDivisionError) as e:
+            logger.debug(f"EAR computation failed: {e}")
             return None
 
         self.last_value = ear_value
@@ -51,7 +55,9 @@ class EyeClosureMetric(BaseMetric):
         self.eye_history.append(ear_alert)
 
         # Compute PERCLOS
-        perclos = sum(self.eye_history) / len(self.eye_history)
+        perclos = (
+            sum(self.eye_history) / len(self.eye_history) if self.eye_history else 0.0
+        )
         perclos_alert = perclos > self.perclos_threshold
 
         return {
