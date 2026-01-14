@@ -29,6 +29,11 @@ async def create_peer_connection(
     rtc_config = RTCConfiguration(
         iceServers=[
             RTCIceServer(urls="stun:stun.l.google.com:19302"),
+            RTCIceServer(
+                urls="turn:openrelay.metered.ca:80",
+                username="openrelayproject",
+                credential="openrelayproject",
+            ),
         ]
     )
 
