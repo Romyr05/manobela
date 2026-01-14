@@ -8,8 +8,6 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-cred_api_key = settings.metered_credentials_api_key
-
 
 async def get_ice_servers() -> list[RTCIceServer]:
     """
@@ -24,13 +22,15 @@ async def get_ice_servers() -> list[RTCIceServer]:
         RTCIceServer(urls="stun:stun1.l.google.com:19302"),
     )
 
+    cred_api_key = settings.metered_credentials_api_key
+
     try:
         if cred_api_key:
             ice_servers.extend(await get_ice_servers_from_api_key(cred_api_key))
         else:
-            logger.warning("Open Relay credentials API key not configured")
+            logger.warning("TURN credentials API key not configured")
     except Exception as e:
-        logger.warning("Open Relay TURN servers unavailable: %s", e)
+        logger.warning("TURN servers unavailable: %s", e)
 
     return ice_servers
 
@@ -43,7 +43,7 @@ async def get_ice_servers_from_api_key(
     Optionally specify a region (e.g., "global", "us_east", "europe").
     """
     if not settings.metered_domain:
-        logger.warning("Open Relay domain not configured")
+        logger.warning("TURN domain not configured")
         return []
 
     base = f"https://{settings.metered_domain}/api/v1/turn/credentials?apiKey={api_key}"
@@ -75,7 +75,7 @@ async def create_turn_credential(
     Returns dict with keys: username, password, apiKey, expiryInSeconds, label.
     """
     if not (settings.metered_secret_key and settings.metered_domain):
-        logger.warning("Open Relay secret key not configured")
+        logger.warning("TURN secret key not configured")
         return {}
 
     url = (
