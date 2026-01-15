@@ -22,7 +22,7 @@ export const InferenceDisplay = ({ sessionState, data }: InferenceDisplayProps) 
   }
 
   // Filter out unnecessary keys
-  const exclude = ['face_landmarks'];
+  const exclude = ['face_landmarks', 'object_detections'];
   const entries = Object.entries(data).filter(([key]) => !exclude.includes(key));
 
   return (
