@@ -2,6 +2,7 @@ import asyncio
 import functools
 import logging
 import os
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -18,6 +19,9 @@ from app.services.smoother import Smoother
 
 logger = logging.getLogger(__name__)
 
+# MediaPipe FaceLandmarker is NOT thread-safe.
+# Use a global lock to prevent concurrent access.
+face_landmarker_lock = threading.Lock()
 
 TARGET_FPS = max(1, settings.target_fps)
 TARGET_INTERVAL_SEC = 1 / TARGET_FPS
@@ -53,7 +57,8 @@ def process_video_frame(
 
     # Detect landmarks
     timestamp_ms = int(time.time() * 1000)
-    detection_result = face_landmarker.detect_for_video(mp_image, timestamp_ms)
+    with face_landmarker_lock:
+        detection_result = face_landmarker.detect_for_video(mp_image, timestamp_ms)
 
     raw_landmarks: list[tuple[float, float]] | None = None
     essential_landmarks: list[float] | None = None
