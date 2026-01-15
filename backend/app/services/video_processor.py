@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 import cv2
 import mediapipe as mp
 
+from app.core.config import settings
 from app.models.inference import InferenceData, Resolution
 from app.services.connection_manager import ConnectionManager
 from app.services.face_landmarks import ESSENTIAL_LANDMARKS
@@ -18,7 +19,7 @@ from app.services.smoother import Smoother
 logger = logging.getLogger(__name__)
 
 
-TARGET_FPS = 15
+TARGET_FPS = settings.target_fps
 TARGET_INTERVAL_SEC = 1 / TARGET_FPS
 MAX_WIDTH = 480
 RENDER_LANDMARKS_FULL = False  # Option to render all landmarks or only essential ones
