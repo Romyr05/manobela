@@ -45,16 +45,11 @@ def process_video_frame(
     Process a single video frame.
     """
 
-    # TODO: To integrate yawnDetector.py to face_landmarks
-    # Probably add indeces to land_marks.py rather than a linear implementation
-
     h, w = img_bgr.shape[:2]
 
     # Resize if needed
     if w > MAX_WIDTH:
         scale = MAX_WIDTH / w
-
-
         w, h = int(w * scale), int(h * scale)
         img_bgr = cv2.resize(img_bgr, (w, h))
 
