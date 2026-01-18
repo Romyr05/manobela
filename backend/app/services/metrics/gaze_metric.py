@@ -31,7 +31,6 @@ class GazeMetric(BaseMetric):
         reset: Resets any internal state (no-op here)
         _eye_gaze_ratio: Computes gaze ratio for one eye
         _average_point: Computes average point from given landmark indices
-        _normalize_right_eye: Normalizes right eye x-coordinate to left-eye system
     """
 
     DEFAULT_HORIZONTAL_RANGE = (0.35, 0.65)
