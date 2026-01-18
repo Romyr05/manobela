@@ -178,23 +178,34 @@ class ObjectDetector:
     def _apply_nms(boxes, confidences, class_ids, conf_thres, iou_thres):
         """Apply Non-Max Suppression (NMS) to boxes
         to remove duplicate or overlapping bounding boxes for the same object."""
+        if len(boxes) == 0:
+            return np.array([], dtype=np.int32)
+
         keep_idxs = []
-        for cls in np.unique(class_ids):
-            idxs = np.where(class_ids == cls)[0]
-            cls_boxes = boxes[idxs]
-            cls_scores = confidences[idxs]
+        unique_classes = np.unique(class_ids)
 
-            keep = cv2.dnn.NMSBoxes(
-                cls_boxes.tolist(),
-                cls_scores.tolist(),
-                conf_thres,
-                iou_thres,
-            )
+        for cls in unique_classes:
+            cls_mask = class_ids == cls
+            cls_indices = np.flatnonzero(cls_mask)
+            cls_boxes = boxes[cls_mask]
+            cls_scores = confidences[cls_mask]
 
-            if len(keep) > 0:
-                keep_idxs.extend(idxs[np.array(keep).flatten()])
+            try:
+                keep = cv2.dnn.NMSBoxes(
+                    cls_boxes.tolist(),
+                    cls_scores.tolist(),
+                    conf_thres,
+                    iou_thres,
+                )
 
-        return np.array(keep_idxs)
+                if len(keep) > 0:
+                    keep_flat = np.array(keep).flatten()
+                    keep_idxs.extend(cls_indices[keep_flat])
+            except Exception as e:
+                logger.warning(f"NMS failed for class {cls}: {e}")
+                continue
+
+        return np.array(keep_idxs, dtype=np.int32)
 
     @staticmethod
     def _to_object_detections(boxes, confidences, class_ids):
