@@ -4,6 +4,7 @@ No 3D coordinates or camera calibration required.
 """
 import math
 from typing import List, Tuple
+from venv import logger
 
 from app.services.metrics.utils.geometry import euclidean_dist
 
@@ -49,7 +50,7 @@ def compute_roll_angle(landmarks: List[Tuple[float, float]]) -> float:
     return roll
 
 
-def compute_yaw_angle(landmarks: List[Tuple[float, float]]) -> float:
+def compute_yaw_angle(landmarks: List[Tuple[float, float]], yaw_scale: float = 60.0) -> float:
     """
     Compute yaw (left/right turn) angle from 2D landmarks.
     Uses the ratio of distances from nose to face edges.
@@ -86,7 +87,7 @@ def compute_yaw_angle(landmarks: List[Tuple[float, float]]) -> float:
 
     # Convert ratio to approximate angle (empirically calibrated)
     # Approx value for offset
-    yaw = ratio * 60.0
+    yaw = ratio * yaw_scale
 
     return yaw
 
@@ -152,10 +153,10 @@ def compute_head_pose_angles_2d(
         - Pitch: positive = looking up, negative = looking down
         - Roll: positive = clockwise tilt, negative = counterclockwise tilt
     """
-    if len(landmarks) < 468:
-        raise ValueError(
-            f"Insufficient landmarks for head pose estimation: got {len(landmarks)}, need 468"
-        )
+    REQUIRED_LANDMARKS = 468
+    if len(landmarks) < REQUIRED_LANDMARKS:
+        logger.warning(f"Expected {REQUIRED_LANDMARKS} landmarks, got {len(landmarks)}. Head pose may be inaccurate.")
+        # Optionally return (0.0, 0.0, 0.0) or skip computation
 
     yaw = compute_yaw_angle(landmarks)
     pitch = compute_pitch_angle(landmarks)

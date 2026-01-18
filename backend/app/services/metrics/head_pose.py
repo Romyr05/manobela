@@ -52,7 +52,11 @@ class HeadPoseMetric(BaseMetric):
         self.roll_threshold = roll_threshold
 
         # Convert seconds to frames
-        self.window_size = max(1, int(window_sec * settings.target_fps))
+        fps = getattr(settings, 'target_fps', 30)  # Provide a sensible default
+        if not isinstance(fps, (int, float)) or fps <= 0:
+            fps = 30
+            logger.warning("Invalid target_fps, defaulting to %s", fps)
+        self.window_size = max(1, int(window_sec * fps))
 
         # State tracking
         self.last_angles: Optional[Tuple[float, float, float]] = None
@@ -133,5 +137,3 @@ class HeadPoseMetric(BaseMetric):
         self.yaw_history.clear()
         self.pitch_history.clear()
         self.roll_history.clear()
-
-""
