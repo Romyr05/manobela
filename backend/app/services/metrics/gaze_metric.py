@@ -17,21 +17,23 @@ class GazeMetric(BaseMetric):
     DEFAULT_HORIZONTAL_RANGE = (0.35, 0.65)
     DEFAULT_VERTICAL_RANGE = (0.35, 0.65)
 
-    LEFT_EYE_CORNERS = (33, 133)
-    RIGHT_EYE_CORNERS = (362, 263)
-    LEFT_EYE_LIDS = (159, 145)
-    RIGHT_EYE_LIDS = (386, 374)
-
-    LEFT_IRIS = (468, 469, 470, 471, 472)
-    RIGHT_IRIS = (473, 474, 475, 476, 477)
-
+    LANDMARK_MAP = {
+        "LEFT_EYE_CORNERS": (33, 133),
+        "RIGHT_EYE_CORNERS": (362, 263),
+        "LEFT_EYE_LIDS": (159, 145),
+        "RIGHT_EYE_LIDS": (386, 374),
+        "LEFT_IRIS": (468, 469, 470, 471, 472),
+        "RIGHT_IRIS": (473, 474, 475, 476, 477)
+    }
     def __init__(
         self,
         horizontal_range: tuple[float, float] = DEFAULT_HORIZONTAL_RANGE,
         vertical_range: tuple[float, float] = DEFAULT_VERTICAL_RANGE,
+        landmark_indices: Dict[str, tuple[int, ...]] = None,
     ) -> None:
         self.horizontal_range = horizontal_range
         self.vertical_range = vertical_range
+        self.landmarks = landmark_indices or self.LANDMARK_MAP
 
     def update(self, frame_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         landmarks = frame_data.get("landmarks")
@@ -52,29 +54,23 @@ class GazeMetric(BaseMetric):
                 self.RIGHT_IRIS,
             )
         except (IndexError, ZeroDivisionError) as exc:
-            logger.debug("Gaze computation failed: %s", exc)
+            logger.debug(f"Gaze computation failed: {exc}")
             return None
 
         if left_ratio is None or right_ratio is None:
             return None
 
-        gaze_x = (left_ratio[0] + right_ratio[0]) / 2
-        gaze_y = (left_ratio[1] + right_ratio[1]) / 2
 
         on_road = (
-            self.horizontal_range[0] <= gaze_x <= self.horizontal_range[1]
-            and self.vertical_range[0] <= gaze_y <= self.vertical_range[1]
         )
 
         return {
-            "gaze_x": gaze_x,
-            "gaze_y": gaze_y,
             "gaze_on_road": on_road,
             "gaze_alert": not on_road,
         }
 
     def reset(self) -> None:
-        return None
+        pass
 
     @staticmethod
     def _eye_gaze_ratio(
