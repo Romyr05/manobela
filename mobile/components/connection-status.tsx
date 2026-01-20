@@ -19,26 +19,23 @@ export const ConnectionStatus = ({ sessionState, clientId, error }: ConnectionSt
     return 'text-muted-foreground';
   })();
 
-  const statusLabel = (() => {
-    if (sessionState === 'active') return 'ACTIVE';
-    if (sessionState === 'starting') return 'STARTING...';
-    if (sessionState === 'stopping') return 'STOPPING...';
-    return 'IDLE';
-  })();
-
-  const truncatedClientId = clientId ? `${clientId.slice(0, 6)}...${clientId.slice(-4)}` : '';
-
   return (
-    <View className="w-full flex-row items-center justify-between px-1 py-1">
-      <Text className={`text-xs font-semibold ${statusColor} text-center`}>{statusLabel}</Text>
+    <>
+      <View className="mb-2">
+        <Text className={`text-xs ${statusColor}`}>Status: {sessionState}</Text>
+        <Text className="text-xs text-muted-foreground">
+          Client ID: {clientId ?? 'Not connected'}
+        </Text>
+        <Text className="text-xs text-muted-foreground">
+          WebRTC: {connectionStatus} | Transport: {transportStatus}
+        </Text>
+      </View>
 
-      {clientId && (
-        <TouchableOpacity onPress={() => setShowFullId((prev) => !prev)} activeOpacity={0.7}>
-          <Text className="text-center text-xs text-muted-foreground">
-            {'ID: ' + (showFullId ? clientId : truncatedClientId)}
-          </Text>
-        </TouchableOpacity>
+      {error && (
+        <View className="mb-2">
+          <Text className="text-xs text-destructive">{error}</Text>
+        </View>
       )}
-    </View>
+    </>
   );
 };
