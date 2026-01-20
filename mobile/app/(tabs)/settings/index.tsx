@@ -2,6 +2,7 @@ import { useMemo, type ReactNode } from 'react';
 import { Linking, Pressable, ScrollView, Switch, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
+import SettingRow from '@/lib/settings/'
 import {
   ChevronRight,
   Globe,
@@ -26,23 +27,6 @@ const LINKS = {
   dataProtection: 'https://github.com/popcorn-prophets/manobela/blob/master/CODE_OF_CONDUCT.md',
 };
 
-type SettingRowProps = {
-  icon: typeof ChevronRight;
-  label: string;
-  value?: string;
-  onPress?: () => void;
-  rightElement?: ReactNode;
-  disabled?: boolean;
-};
-
-function SettingRow({
-  icon,
-  label,
-  value,
-  onPress,
-  rightElement,
-  disabled,
-}: SettingRowProps) {
 
 // Faint glowing code block -- start --
 const baseClassName = 'flex-row items-center justify-between rounded-2xl px-4 py-3';
