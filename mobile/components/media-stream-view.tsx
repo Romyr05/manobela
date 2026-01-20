@@ -1,12 +1,13 @@
-import { MediaStream, RTCView } from 'react-native-webrtc';
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { FacialLandmarkOverlay } from './facial-landmark-overlay';
+import { MediaStream, RTCView } from 'react-native-webrtc';
 import { SessionState } from '@/hooks/useMonitoringSession';
-import { Button } from '@/components/ui/button';
-import { Text } from '@/components/ui/text';
+import { CameraRecordButton } from './camera-record-button';
+import { FacialLandmarkOverlay } from './facial-landmark-overlay';
 import { ObjectDetectionOverlay } from './object-detection-overlay';
 import { InferenceData } from '@/types/inference';
+import { View, StyleSheet, Pressable } from 'react-native';
+import { Text } from '@/components/ui/text';
+import { Eye, EyeOff } from 'lucide-react-native';
 
 type MediaStreamViewProps = {
   stream: MediaStream | null;
@@ -14,6 +15,8 @@ type MediaStreamViewProps = {
   inferenceData?: InferenceData | null;
   style?: object;
   mirror?: boolean;
+  hasCamera: boolean;
+  onToggle: () => void;
 };
 
 /**
@@ -25,6 +28,8 @@ export const MediaStreamView = ({
   inferenceData,
   style,
   mirror = true,
+  hasCamera,
+  onToggle,
 }: MediaStreamViewProps) => {
   const [viewDimensions, setViewDimensions] = useState({ width: 0, height: 0 });
   const [showOverlay, setShowOverlay] = useState(true);
@@ -50,14 +55,17 @@ export const MediaStreamView = ({
 
   return (
     <View
-      style={[{ width: '100%', height: '100%' }, style]}
+      style={[
+        { width: '100%', height: '100%', flex: 1, borderRadius: 16, overflow: 'hidden' },
+        style,
+      ]}
       onLayout={(event) => {
         const { width, height } = event.nativeEvent.layout;
         setViewDimensions({ width, height });
       }}>
       <RTCView
         streamURL={stream.toURL()}
-        objectFit="contain"
+        objectFit="cover"
         style={StyleSheet.absoluteFill}
         mirror={mirror}
       />
@@ -84,16 +92,37 @@ export const MediaStreamView = ({
         />
       )}
 
-      {/* Toggle button for overlay */}
-      <View className="absolute bottom-3 right-3">
-        <Button
-          size="sm"
-          variant="secondary"
-          className="p-2"
-          onPress={() => setShowOverlay((v) => !v)}>
-          <Text className="text-xs">{showOverlay ? 'Hide overlay' : 'Show overlay'}</Text>
-        </Button>
+      {/* Overlay record button */}
+      <View className="absolute bottom-3 left-0 right-0 items-center">
+        <CameraRecordButton
+          isRecording={sessionState === 'active'}
+          disabled={!hasCamera || sessionState === 'starting' || sessionState === 'stopping'}
+          onPress={onToggle}
+        />
       </View>
+
+      {/* Overlay toggle */}
+      <View className="absolute right-3 top-3">
+        <Pressable
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={showOverlay ? 'Hide overlays' : 'Show overlays'}
+          onPress={() => setShowOverlay((v) => !v)}
+          className="h-9 w-9 items-center justify-center">
+          {showOverlay ? <Eye size={20} color="#fff" /> : <EyeOff size={20} color="#fff" />}
+        </Pressable>
+      </View>
+
+      {/* Overlay resolution */}
+      {inferenceData?.resolution && (
+        <View className="absolute left-3 top-3 z-10 items-center">
+          <View className="rounded-full bg-black/50 px-2 py-1">
+            <Text className="text-xs text-white">
+              {inferenceData.resolution.width}x{inferenceData.resolution.height}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 };

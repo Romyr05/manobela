@@ -23,7 +23,7 @@ class EyeClosureMetric(BaseMetric):
     Thresholds and window size are configurable per instance.
     """
 
-    DEFAULT_EAR_THRESHOLD = 0.20
+    DEFAULT_EAR_THRESHOLD = 0.15
     DEFAULT_PERCLOS_THRESHOLD = 0.4
     DEFAULT_WINDOW_SEC = 10
 
@@ -52,11 +52,12 @@ class EyeClosureMetric(BaseMetric):
     def update(self, context: FrameContext) -> EyeClosureMetricOutput:
         landmarks = context.face_landmarks
         if not landmarks:
+            perclos = self._perclos()
             return {
                 "ear_alert": False,
                 "ear": None,
-                "perclos_alert": False,
-                "perclos": None,
+                "perclos_alert": perclos >= self.perclos_threshold,
+                "perclos": perclos,
             }
 
         # Computer EAR
@@ -64,11 +65,12 @@ class EyeClosureMetric(BaseMetric):
             ear_value = average_ear(landmarks)
         except (IndexError, ZeroDivisionError) as e:
             logger.debug(f"EAR computation failed: {e}")
+            perclos = self._perclos()
             return {
                 "ear_alert": False,
                 "ear": None,
-                "perclos_alert": False,
-                "perclos": None,
+                "perclos_alert": perclos >= self.perclos_threshold,
+                "perclos": perclos,
             }
 
         self.last_value = ear_value
@@ -77,10 +79,8 @@ class EyeClosureMetric(BaseMetric):
         self.eye_history.append(ear_alert)
 
         # Compute PERCLOS
-        perclos = (
-            sum(self.eye_history) / len(self.eye_history) if self.eye_history else 0.0
-        )
-        perclos_alert = perclos > self.perclos_threshold
+        perclos = self._perclos()
+        perclos_alert = perclos >= self.perclos_threshold
 
         return {
             "ear_alert": ear_alert,
@@ -92,3 +92,8 @@ class EyeClosureMetric(BaseMetric):
     def reset(self):
         self.last_value = None
         self.eye_history.clear()
+
+    def _perclos(self) -> float:
+        return (
+            sum(self.eye_history) / len(self.eye_history) if self.eye_history else 0.0
+        )
