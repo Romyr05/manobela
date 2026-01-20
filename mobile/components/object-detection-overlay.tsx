@@ -12,6 +12,7 @@ import { StyleSheet } from 'react-native';
 
 // COCO dataset class names (80 classes)
 const COCO_CLASSES: { [key: number]: string } = {
+  0: 'cigarette',
   67: 'cell phone',
   // Add more classes as needed
 };

@@ -8,6 +8,7 @@ from app.services.metrics.frame_context import FrameContext
 from app.services.metrics.gaze import GazeMetric, GazeMetricOutput
 from app.services.metrics.head_pose import HeadPoseMetric, HeadPoseMetricOutput
 from app.services.metrics.yawn import YawnMetric, YawnMetricOutput
+from app.services.metrics.smoking import SmokingMetric, SmokingMetricOutput
 from app.services.phone_usage import PhoneUsageMetric, PhoneUsageMetricOutput
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ class MetricsOutput(TypedDict, total=False):
     head_pose: HeadPoseMetricOutput
     gaze: GazeMetricOutput
     phone_usage: PhoneUsageMetricOutput
+    smoking: SmokingMetricOutput
 
 
 class MetricManager:
@@ -38,6 +40,7 @@ class MetricManager:
             "yawn": YawnMetric(),
             "gaze": GazeMetric(),
             "phone_usage": PhoneUsageMetric(),
+            "smoking": SmokingMetric(),
         }
 
     def update(self, context: FrameContext) -> MetricsOutput:

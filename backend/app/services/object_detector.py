@@ -17,8 +17,16 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MODEL_PATH = PROJECT_ROOT / "assets" / "models" / "yolov8n.onnx"
 
+# Class ids (update if your ONNX export uses different ids)
+_cig_env = os.getenv("CIGARETTE_CLASS_ID")
+CIGARETTE_CLASS_ID: int | None = int(_cig_env) if _cig_env is not None else None
+PHONE_CLASS_ID = 67  # COCO phone id (kept for existing phone metric)
+
 # Essential classes to filter out from object detections
-ESSENTIAL_CLASSES: list[int] = [67]  # cell phone
+ESSENTIAL_CLASSES: list[int] = (
+    [PHONE_CLASS_ID]
+    + ([CIGARETTE_CLASS_ID] if CIGARETTE_CLASS_ID is not None else [])
+)
 
 
 class ObjectDetection(BaseModel):
