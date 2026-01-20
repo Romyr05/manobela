@@ -5,8 +5,8 @@ import { useMonitoringSession } from '@/hooks/useMonitoringSession';
 import { MediaStreamView } from '@/components/media-stream-view';
 import { ConnectionStatus } from '@/components/connection-status';
 import { MonitoringControls } from '@/components/monitoring-controls';
-import { InferenceDisplay } from '@/components/inference-display';
 import { Stack } from 'expo-router';
+import { MetricsDisplay } from '@/components/metrics/metrics-display';
 
 const WS_BASE = process.env.EXPO_PUBLIC_WS_BASE!;
 const WS_URL = `${WS_BASE}/driver-monitoring`;
@@ -64,7 +64,7 @@ export default function MonitorScreen() {
         onToggle={handleToggle}
       />
 
-      <InferenceDisplay sessionState={sessionState} data={inferenceData} />
+      <MetricsDisplay sessionState={sessionState} metricsOutput={inferenceData?.metrics ?? null} />
     </ScrollView>
   );
 }
