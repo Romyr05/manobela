@@ -1,13 +1,12 @@
 import { MediaStream, RTCView } from 'react-native-webrtc';
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { SessionState } from '@/hooks/useMonitoringSession';
-import { Button } from '@/components/ui/button';
-import { Text } from '@/components/ui/text';
 import { CameraRecordButton } from './camera-record-button';
 import { FacialLandmarkOverlay } from './facial-landmark-overlay';
 import { ObjectDetectionOverlay } from './object-detection-overlay';
 import { InferenceData } from '@/types/inference';
+import { Eye, EyeOff } from 'lucide-react-native';
 
 type MediaStreamViewProps = {
   stream: MediaStream | null;
@@ -103,13 +102,14 @@ export const MediaStreamView = ({
 
       {/* Overlay toggle */}
       <View className="absolute right-3 top-3">
-        <Button
-          size="sm"
-          variant="secondary"
-          className="p-2"
-          onPress={() => setShowOverlay((v) => !v)}>
-          <Text className="text-xs">{showOverlay ? 'Hide overlay' : 'Show overlay'}</Text>
-        </Button>
+        <Pressable
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={showOverlay ? 'Hide overlays' : 'Show overlays'}
+          onPress={() => setShowOverlay((v) => !v)}
+          className="h-9 w-9 items-center justify-center">
+          {showOverlay ? <Eye size={20} color="#fff" /> : <EyeOff size={20} color="#fff" />}
+        </Pressable>
       </View>
     </View>
   );
