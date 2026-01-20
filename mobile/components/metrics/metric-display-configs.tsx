@@ -1,8 +1,9 @@
 import { MetricId } from '@/types/metrics';
-import { AlertCircle, Eye, LucideIcon, Navigation, Smartphone, User } from 'lucide-react-native';
+import { ReactNode } from 'react';
+import { Fontisto, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export interface MetricConfig {
-  icon: LucideIcon;
+  icon: (props: { size: number; color: string }) => ReactNode;
   label: string;
   getWarningState: (data: any) => boolean;
   getFillRatio?: (data: any) => number | undefined;
@@ -11,21 +12,21 @@ export interface MetricConfig {
 /** Display configuration for each metric */
 export const METRIC_DISPLAY_CONFIGS: Record<MetricId, MetricConfig> = {
   eye_closure: {
-    icon: Eye,
+    icon: ({ size, color }) => <MaterialCommunityIcons name="eye" size={size} color={color} />,
     label: 'Eyes',
     getWarningState: (data) => data?.ear_alert === true,
     getFillRatio: (data) =>
       data?.perclos != null ? Math.max(0, Math.min(1, data.perclos)) : undefined,
   },
   yawn: {
-    icon: AlertCircle,
+    icon: ({ size, color }) => <Fontisto name="open-mouth" size={size} color={color} />,
     label: 'Yawn',
     getWarningState: (data) => data?.yawning === true,
     getFillRatio: (data) =>
       data?.yawn_count != null ? Math.max(0, Math.min(1, data.yawn_count / 5)) : undefined,
   },
   head_pose: {
-    icon: User,
+    icon: ({ size, color }) => <MaterialCommunityIcons name="head" size={size} color={color} />,
     label: 'Head',
     getWarningState: (data) =>
       Boolean(data?.head_pose_alert || data?.yaw_alert || data?.pitch_alert || data?.roll_alert),
@@ -36,12 +37,14 @@ export const METRIC_DISPLAY_CONFIGS: Record<MetricId, MetricConfig> = {
     },
   },
   gaze: {
-    icon: Navigation,
+    icon: ({ size, color }) => <MaterialCommunityIcons name="bullseye" size={size} color={color} />,
     label: 'Gaze',
     getWarningState: (data) => data?.gaze_on_road === false,
   },
   phone_usage: {
-    icon: Smartphone,
+    icon: ({ size, color }) => (
+      <MaterialCommunityIcons name="cellphone" size={size} color={color} />
+    ),
     label: 'Phone',
     getWarningState: (data) => Boolean(data?.phone_usage && data.phone_usage > 0),
     getFillRatio: (data) =>

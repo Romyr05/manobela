@@ -1,8 +1,7 @@
-import { LucideIcon } from 'lucide-react-native';
-
 import colors from 'tailwindcss/colors';
 import { Text } from '@/components/ui/text';
 import { Pressable, View } from 'react-native';
+import { ReactNode } from 'react';
 
 const CIRCLE_SIZE = 56; // ~ h-14 w-14
 
@@ -19,7 +18,7 @@ const getContainerClasses = (isDisabled: boolean, isWarning: boolean): string =>
 };
 
 interface MetricIndicatorProps {
-  icon: LucideIcon;
+  icon: (props: { size: number; color: string }) => ReactNode;
   label: string;
   isWarning: boolean;
   fillRatio?: number;
@@ -35,7 +34,7 @@ interface MetricIndicatorProps {
  * and optionally fills the circle with a percentage.
  */
 export const MetricIndicator = ({
-  icon: Icon,
+  icon,
   label,
   isWarning,
   fillRatio,
@@ -72,7 +71,7 @@ export const MetricIndicator = ({
         )}
 
         <View className="absolute inset-0 items-center justify-center">
-          <Icon size={24} color={iconColor} />
+          {icon({ size: 24, color: iconColor })}
         </View>
       </Pressable>
 
