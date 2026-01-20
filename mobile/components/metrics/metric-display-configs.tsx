@@ -45,10 +45,7 @@ export const METRIC_DISPLAY_CONFIGS: Record<MetricId, MetricConfig> = {
       <MaterialCommunityIcons name="cellphone" size={size} color={color} />
     ),
     label: 'Phone',
-    getWarningState: (data) => Boolean(data?.phone_usage && data.phone_usage > 0),
-    getFillRatio: (data) =>
-      data?.phone_detected_frames != null
-        ? Math.max(0, Math.min(1, data.phone_detected_frames / 50))
-        : undefined,
+    getWarningState: (data) => data?.phone_usage,
+    getFillRatio: (data) => data?.phone_usage_rate,
   },
 } as const;

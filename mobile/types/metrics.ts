@@ -42,8 +42,8 @@ export interface GazeMetricOutput {
 }
 
 export interface PhoneUsageMetricOutput {
-  phone_usage: number | null;
-  phone_detected_frames: number;
+  phone_usage: boolean;
+  phone_usage_rate: number;
 }
 
 /** ID of a metric */

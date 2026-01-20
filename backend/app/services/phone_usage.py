@@ -1,3 +1,6 @@
+from collections import deque
+
+from app.core.config import settings
 from app.services.metrics.base_metric import BaseMetric, MetricOutputBase
 from app.services.metrics.frame_context import FrameContext
 
@@ -6,48 +9,45 @@ PHONE_CLASS_ID = 67  # COCO
 
 class PhoneUsageMetricOutput(MetricOutputBase):
     phone_usage: bool
-    phone_detected_frames: int
+    phone_usage_rate: float
 
 
 class PhoneUsageMetric(BaseMetric):
     """
     Metric to detect phone usage.
-    It counts the number of consecutive frames with a detected phone.
+    It counts the number of frames with a detected phone within a rolling window.
     """
 
-    def __init__(self, conf=0.3, min_consecutive_frames=3):
+    def __init__(self, conf=0.3, window_sec=3, threshold=0.5):
         """
         Args:
             conf: Confidence threshold for phone detection.
-            min_consecutive_frames: Minimum number of consecutive frames with a detected phone.
+            window_sec: Rolling window duration in seconds.
+            threshold: Phone usage rate threshold to trigger alert.
         """
         self.conf = conf
-        self.min_consecutive_frames = min_consecutive_frames
-        self.counter = 0
+        self.window_size = max(1, int(window_sec * settings.target_fps))
+        self.threshold = threshold
+        self._history = deque(maxlen=self.window_size)
 
     def update(self, context: FrameContext) -> PhoneUsageMetricOutput:
         obj_detections = context.object_detections
-        if not obj_detections:
-            self.counter = 0
-            return {
-                "phone_usage": False,
-                "phone_detected_frames": self.counter,
-            }
 
         phone_detected = any(
             d.conf >= self.conf and (d.class_id == PHONE_CLASS_ID)
-            for d in obj_detections
+            for d in obj_detections or []
         )
 
-        if phone_detected:
-            self.counter += 1
-        else:
-            self.counter = 0
+        self._history.append(phone_detected)
+
+        phone_usage_rate = (
+            sum(self._history) / len(self._history) if self._history else 0.0
+        )
 
         return {
-            "phone_usage": self.counter >= self.min_consecutive_frames,
-            "phone_detected_frames": self.counter,
+            "phone_usage": phone_detected,
+            "phone_usage_rate": phone_usage_rate,
         }
 
     def reset(self):
-        pass
+        self._history.clear()

@@ -28,7 +28,7 @@ const LABEL_MAPPINGS: Record<string, string> = {
   gaze_alert: 'Gaze Alert',
   gaze_rate: 'Gaze Rate',
   phone_usage: 'Phone Usage',
-  phone_detected_frames: '# Frames Detected',
+  phone_usage_rate: 'Phone Usage Rate',
 } as const;
 
 /** Metric data keys that are percentages */
@@ -38,6 +38,7 @@ const PERCENTAGE_KEYS = new Set([
   'yawn_rate',
   'gaze_rate',
   'phone_usage',
+  'phone_usage_rate',
 ]);
 
 /** Formats a metric label with a human-readable name */
