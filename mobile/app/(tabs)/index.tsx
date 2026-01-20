@@ -43,8 +43,8 @@ export default function MonitorScreen() {
           style={{
             width: '100%',
             aspectRatio:
-              (inferenceData?.resolution?.width ?? 480) /
-              (inferenceData?.resolution?.height ?? 320),
+              (inferenceData?.resolution?.width ?? 320) /
+              (inferenceData?.resolution?.height ?? 480),
           }}
         />
       </View>
