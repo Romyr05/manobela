@@ -1,11 +1,12 @@
-import { MediaStream, RTCView } from 'react-native-webrtc';
 import React, { useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { MediaStream, RTCView } from 'react-native-webrtc';
 import { SessionState } from '@/hooks/useMonitoringSession';
 import { CameraRecordButton } from './camera-record-button';
 import { FacialLandmarkOverlay } from './facial-landmark-overlay';
 import { ObjectDetectionOverlay } from './object-detection-overlay';
 import { InferenceData } from '@/types/inference';
+import { View, StyleSheet, Pressable } from 'react-native';
+import { Text } from '@/components/ui/text';
 import { Eye, EyeOff } from 'lucide-react-native';
 
 type MediaStreamViewProps = {
@@ -111,6 +112,17 @@ export const MediaStreamView = ({
           {showOverlay ? <Eye size={20} color="#fff" /> : <EyeOff size={20} color="#fff" />}
         </Pressable>
       </View>
+
+      {/* Overlay resolution */}
+      {inferenceData?.resolution && (
+        <View className="absolute left-3 top-3 z-10 items-center">
+          <View className="rounded-full bg-black/50 px-2 py-1">
+            <Text className="text-xs text-white">
+              {inferenceData.resolution.width}x{inferenceData.resolution.height}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
