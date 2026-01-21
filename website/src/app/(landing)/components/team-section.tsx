@@ -10,12 +10,11 @@ import { Github, Linkedin, Globe } from 'lucide-react';
 const team = [
   {
     id: 1,
-    name: 'Alexandra Chen',
-    role: 'Founder & CEO',
-    description: 'Former co-founder of TechFlow. Early staff at Microsoft and Google.',
-    image:
-      'https://images.unsplash.com/photo-1494790108755-2616b612b786?q=60&w=150&auto=format&fit=crop',
-    fallback: 'AC',
+    name: 'Andrian Lloyd Maagma',
+    role: 'Lead Developer',
+    description: '2nd year Computer Science student at the University of the Philippines',
+    image: '',
+    fallback: 'AM',
     social: {
       linkedin: '#',
       github: '#',
@@ -24,12 +23,11 @@ const team = [
   },
   {
     id: 2,
-    name: 'Marcus Rodriguez',
-    role: 'Engineering Manager',
-    description: 'Lead engineering teams at Stripe, Discord, and Meta Labs.',
-    image:
-      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=60&w=150&auto=format&fit=crop',
-    fallback: 'MR',
+    name: 'Dejel Cyrus De Asis',
+    role: 'Developer',
+    description: '2nd year Computer Science student at the University of the Philippines',
+    image: '',
+    fallback: 'DC',
     social: {
       linkedin: '#',
       github: '#',
@@ -38,12 +36,11 @@ const team = [
   },
   {
     id: 3,
-    name: 'Sophie Laurent',
-    role: 'Product Manager',
-    description: 'Former PM for Linear, Lambda School, and On Deck.',
-    image:
-      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=60&w=150&auto=format&fit=crop',
-    fallback: 'SL',
+    name: 'John Romyr Lopez',
+    role: 'Developer',
+    description: '2nd year Computer Science student at the University of the Philippines',
+    image: '',
+    fallback: 'JR',
     social: {
       linkedin: '#',
       github: '#',
@@ -52,12 +49,11 @@ const team = [
   },
   {
     id: 4,
-    name: 'David Kim',
-    role: 'Frontend Developer',
-    description: 'Former frontend dev for Linear, Coinbase, and PostScript.',
-    image:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=60&w=150&auto=format&fit=crop',
-    fallback: 'DK',
+    name: 'Joshua Ticot',
+    role: 'Developer',
+    description: '3rd year Computer Science student at the University of the Philippines',
+    image: '',
+    fallback: 'JT',
     social: {
       linkedin: '#',
       github: '#',
@@ -66,54 +62,11 @@ const team = [
   },
   {
     id: 5,
-    name: 'Emma Thompson',
-    role: 'Backend Developer',
-    description: 'Lead backend dev at Clearbit. Former Clearbit and Loom.',
-    image:
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=60&w=150&auto=format&fit=crop',
-    fallback: 'ET',
-    social: {
-      linkedin: '#',
-      github: '#',
-      website: '#',
-    },
-  },
-  {
-    id: 6,
-    name: 'Ryan Mitchell',
-    role: 'Product Designer',
-    description: 'Founding design team at Figma. Former Pleo, Stripe, and Tile.',
-    image:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=60&w=150&auto=format&fit=crop',
-    fallback: 'RM',
-    social: {
-      linkedin: '#',
-      github: '#',
-      website: '#',
-    },
-  },
-  {
-    id: 7,
-    name: 'James Anderson',
-    role: 'UX Researcher',
-    description: 'Lead user research for Slack. Contractor for Netflix and Udacity.',
-    image:
-      'https://images.unsplash.com/photo-1566492031773-4f4e44671d66?q=60&w=150&auto=format&fit=crop',
-    fallback: 'JA',
-    social: {
-      linkedin: '#',
-      github: '#',
-      website: '#',
-    },
-  },
-  {
-    id: 8,
-    name: 'Isabella Garcia',
-    role: 'Customer Success',
-    description: 'Lead CX at Wealthsimple. Former PagerDuty and Squreen.',
-    image:
-      'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=60&w=150&auto=format&fit=crop',
-    fallback: 'IG',
+    name: 'Jemarco Briz',
+    role: 'Developer',
+    description: '2nd year Computer Science student at the University of the Philippines',
+    image: '',
+    fallback: 'JM',
     social: {
       linkedin: '#',
       github: '#',
@@ -133,8 +86,7 @@ export function TeamSection() {
           </Badge>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">Meet our team</h2>
           <p className="text-lg text-muted-foreground mb-8">
-            We are a passionate team of innovators, builders, and problem-solvers dedicated to
-            creating exceptional digital experiences that make a difference.
+            We are a small team building practical technology to improve road safety.
           </p>
         </div>
 
@@ -148,14 +100,17 @@ export function TeamSection() {
                   <div className="flex justify-center mb-4">
                     <CardDecorator>
                       <Avatar className="h-24 w-24 border shadow-lg">
-                        <AvatarImage
-                          src={member.image}
-                          alt={member.name}
-                          className="object-cover"
-                        />
-                        <AvatarFallback className="text-lg font-semibold">
-                          {member.fallback}
-                        </AvatarFallback>
+                        {member.image ? (
+                          <AvatarImage
+                            src={member.image}
+                            alt={member.name}
+                            className="object-cover"
+                          />
+                        ) : (
+                          <AvatarFallback className="text-lg font-semibold">
+                            {member.fallback}
+                          </AvatarFallback>
+                        )}
                       </Avatar>
                     </CardDecorator>
                   </div>
