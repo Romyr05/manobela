@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { View, ScrollView } from 'react-native';
+import { useKeepAwake } from 'expo-keep-awake';
 import { useCamera } from '@/hooks/useCamera';
 import { useMonitoringSession } from '@/hooks/useMonitoringSession';
 import { useAlerts } from '@/hooks/useAlerts';
@@ -8,32 +9,23 @@ import { ConnectionStatus } from '@/components/connection-status';
 import { Stack } from 'expo-router';
 import { MetricsDisplay } from '@/components/metrics/metrics-display';
 
-
-import {useSettings} from '@/hooks/useSettings';
+import { useSettings } from '@/hooks/useSettings';
 
 export default function MonitorScreen() {
+  useKeepAwake();
+
   const { localStream } = useCamera();
-  const {settings} = useSettings();
-  const wsUrl = useMemo(() =>{
+  const { settings } = useSettings();
+  const wsUrl = useMemo(() => {
     const baseUrl = settings.wsBaseUrl || process.env.EXPO_PUBLIC_WS_BASE || ''; // If we cant find just return blank or ''
     return baseUrl ? `${baseUrl}/driver-monitoring` : '';
-  },[settings.wsBaseUrl]);
+  }, [settings.wsBaseUrl]);
 
-
-  const {
-    sessionState,
-    inferenceData,
-    clientId,
-    transportStatus,
-    connectionStatus,
-    error,
-    hasCamera,
-    start,
-    stop,
-  } = useMonitoringSession({
-    url: wsUrl,
-    stream: localStream,
-  });
+  const { sessionState, inferenceData, clientId, error, hasCamera, start, stop } =
+    useMonitoringSession({
+      url: wsUrl,
+      stream: localStream,
+    });
 
   useAlerts({
     metrics: inferenceData?.metrics ?? null,
