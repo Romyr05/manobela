@@ -55,6 +55,8 @@ class PhoneUsageMetric(BaseMetric):
 
     def update(self, context: FrameContext) -> PhoneUsageMetricOutput:
         obj_detections = context.object_detections
+        if not obj_detections:
+            return self._build_output()
 
         phone_detected = any(
             d.conf >= self.conf and (d.class_id == PHONE_CLASS_ID)
@@ -70,14 +72,17 @@ class PhoneUsageMetric(BaseMetric):
         if self._usage_counter >= self._min_usage_frames:
             self._phone_usage_active = True
 
-        return {
-            "phone_usage": self._phone_usage_active,
-            "phone_usage_sustained": self._calc_sustained(),
-        }
+        return self._build_output()
 
     def reset(self):
         self._usage_counter = 0
         self._phone_usage_active = False
+
+    def _build_output(self) -> PhoneUsageMetricOutput:
+        return {
+            "phone_usage": self._phone_usage_active,
+            "phone_usage_sustained": self._calc_sustained(),
+        }
 
     def _calc_sustained(self) -> float:
         return min(self._usage_counter / self._min_usage_frames, 1.0)

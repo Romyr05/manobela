@@ -94,14 +94,7 @@ class EyeClosureMetric(BaseMetric):
     def update(self, context: FrameContext) -> EyeClosureMetricOutput:
         landmarks = context.face_landmarks
         if not landmarks:
-            perclos = self._perclos()
-            return {
-                "ear": None,
-                "eye_closed": self._eye_closed,
-                "eye_closed_sustained": self._calc_sustained(),
-                "perclos": perclos,
-                "perclos_alert": perclos >= self.perclos_threshold,
-            }
+            return self._build_output(ear=None)
 
         # Computer EAR
         try:
@@ -109,24 +102,10 @@ class EyeClosureMetric(BaseMetric):
             ear_value = self.ear_smoother.update(raw_ear)
         except (IndexError, ZeroDivisionError) as e:
             logger.debug(f"EAR computation failed: {e}")
-            perclos = self._perclos()
-            return {
-                "ear": None,
-                "eye_closed": self._eye_closed,
-                "eye_closed_sustained": self._calc_sustained(),
-                "perclos": perclos,
-                "perclos_alert": perclos >= self.perclos_threshold,
-            }
+            return self._build_output(ear=None)
 
         if ear_value is None:
-            perclos = self._perclos()
-            return {
-                "eye_closed": self._eye_closed,
-                "ear": None,
-                "eye_closed_sustained": self._calc_sustained(),
-                "perclos_alert": perclos >= self.perclos_threshold,
-                "perclos": perclos,
-            }
+            return self._build_output(ear=None)
 
         if ear_value <= self.ear_threshold_close:
             self._eye_closed_duration_frames += 1
@@ -139,21 +118,21 @@ class EyeClosureMetric(BaseMetric):
 
         self.eye_history.append(ear_value <= self.ear_threshold_close)
 
-        # Compute PERCLOS
-        perclos = self._perclos()
-        perclos_alert = perclos >= self.perclos_threshold
-
-        return {
-            "ear": ear_value,
-            "eye_closed": self._eye_closed,
-            "eye_closed_sustained": self._calc_sustained(),
-            "perclos": perclos,
-            "perclos_alert": perclos_alert,
-        }
+        return self._build_output(ear=ear_value)
 
     def reset(self):
         self.ear_smoother.reset()
         self.eye_history.clear()
+
+    def _build_output(self, ear: Optional[float]) -> EyeClosureMetricOutput:
+        perclos = self._perclos()
+        return {
+            "ear": ear,
+            "eye_closed": self._eye_closed,
+            "eye_closed_sustained": self._calc_sustained(),
+            "perclos": perclos,
+            "perclos_alert": perclos >= self.perclos_threshold,
+        }
 
     def _perclos(self) -> float:
         return (

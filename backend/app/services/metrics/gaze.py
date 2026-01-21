@@ -76,13 +76,8 @@ class GazeMetric(BaseMetric):
 
     def update(self, context: FrameContext) -> GazeMetricOutput:
         landmarks = context.face_landmarks
-
         if not landmarks:
-            # When no landmarks, do not change state, just report current state.
-            return {
-                "gaze_alert": self._gaze_alert_state,
-                "gaze_sustained": self._calc_sustained(),
-            }
+            return self._build_output()
 
         try:
             left_ratio_raw = left_eye_gaze_ratio(landmarks)
@@ -101,10 +96,7 @@ class GazeMetric(BaseMetric):
 
         except (IndexError, ZeroDivisionError) as exc:
             logger.debug(f"Gaze computation failed: {exc}")
-            return {
-                "gaze_alert": self._gaze_alert_state,
-                "gaze_sustained": self._calc_sustained(),
-            }
+            return self._build_output()
 
         if left_ratio is None and right_ratio is None:
             gaze_on_road = False
@@ -141,16 +133,19 @@ class GazeMetric(BaseMetric):
         if self._sustained_out_of_range_frames >= self.min_sustained_frames:
             self._gaze_alert_state = True
 
-        return {
-            "gaze_alert": self._gaze_alert_state,
-            "gaze_sustained": self._calc_sustained(),
-        }
+        return self._build_output()
 
     def reset(self) -> None:
         self._sustained_out_of_range_frames = 0
         self._gaze_alert_state = False
         self.left_smoother.reset()
         self.right_smoother.reset()
+
+    def _build_output(self) -> GazeMetricOutput:
+        return {
+            "gaze_alert": self._gaze_alert_state,
+            "gaze_sustained": self._calc_sustained(),
+        }
 
     def _calc_sustained(self) -> float:
         return min(self._sustained_out_of_range_frames / self.min_sustained_frames, 1.0)

@@ -89,29 +89,13 @@ class HeadPoseMetric(BaseMetric):
     def update(self, context: FrameContext) -> HeadPoseMetricOutput:
         landmarks = context.face_landmarks
         if not landmarks:
-            return {
-                "yaw": None,
-                "pitch": None,
-                "roll": None,
-                "yaw_alert": False,
-                "pitch_alert": False,
-                "roll_alert": False,
-                "head_pose_sustained": self._calc_sustained(),
-            }
+            return self._build_output(yaw=None, pitch=None, roll=None)
 
         try:
             yaw, pitch, roll = compute_head_pose_angles_2d(landmarks)
         except (ValueError, IndexError, ZeroDivisionError) as e:
             logger.debug(f"Head pose computation failed: {e}")
-            return {
-                "yaw": None,
-                "pitch": None,
-                "roll": None,
-                "yaw_alert": False,
-                "pitch_alert": False,
-                "roll_alert": False,
-                "head_pose_sustained": self._calc_sustained(),
-            }
+            return self._build_output(yaw=None, pitch=None, roll=None)
 
         # Detect deviation
         yaw_deviation = abs(yaw) > self.yaw_threshold
@@ -139,6 +123,22 @@ class HeadPoseMetric(BaseMetric):
         if not roll_deviation:
             self.roll_state = False
 
+        return self._build_output(yaw=yaw, pitch=pitch, roll=roll)
+
+    def reset(self):
+        self.yaw_counter = 0
+        self.pitch_counter = 0
+        self.roll_counter = 0
+        self.yaw_state = False
+        self.pitch_state = False
+        self.roll_state = False
+
+    def _build_output(
+        self,
+        yaw: Optional[float],
+        pitch: Optional[float],
+        roll: Optional[float],
+    ) -> HeadPoseMetricOutput:
         return {
             "yaw": yaw,
             "pitch": pitch,
@@ -148,14 +148,6 @@ class HeadPoseMetric(BaseMetric):
             "roll_alert": self.roll_state,
             "head_pose_sustained": self._calc_sustained(),
         }
-
-    def reset(self):
-        self.yaw_counter = 0
-        self.pitch_counter = 0
-        self.roll_counter = 0
-        self.yaw_state = False
-        self.pitch_state = False
-        self.roll_state = False
 
     def _calc_sustained(self) -> float:
         return min(max(self.yaw_counter, self.pitch_counter, self.roll_counter) / self.min_sustained_frames, 1.0)

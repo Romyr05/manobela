@@ -82,35 +82,18 @@ class YawnMetric(BaseMetric):
         self._frames_processed += 1
 
         landmarks = context.face_landmarks
-
-        # If no landmarks, keep state but don't count new yawns
         if not landmarks:
-            return {
-                "mar": None,
-                "yawning": self._yawn_active,
-                "yawn_sustained": self._calc_sustained(),
-                "yawn_count": self._yawn_events,
-            }
+            return self._build_output(mar=None)
 
         try:
             raw_mar = compute_mar(landmarks)
             mar_value = self.mar_smoother.update(raw_mar)
         except (IndexError, ZeroDivisionError) as e:
             logger.debug(f"MAR computation failed: {e}")
-            return {
-                "mar": None,
-                "yawning": self._yawn_active,
-                "yawn_sustained": self._calc_sustained(),
-                "yawn_count": self._yawn_events,
-            }
+            return self._build_output(mar=None)
 
         if mar_value is None:
-            return {
-                "mar": None,
-                "yawning": self._yawn_active,
-                "yawn_sustained": self._calc_sustained(),
-                "yawn_count": self._yawn_events,
-            }
+            return self._build_output(mar=None)
 
         if mar_value >= self._mar_threshold_open:
             self._yawn_duration_frames += 1
@@ -118,25 +101,27 @@ class YawnMetric(BaseMetric):
             # If yawning and now mouth closes, count 1 yawn event
             if self._yawn_active:
                 self._yawn_events += 1
-
             self._yawn_duration_frames = 0
             self._yawn_active = False
 
         if self._yawn_duration_frames >= self._min_yawn_duration_frames:
             self._yawn_active = True
 
-        return {
-            "mar": mar_value,
-            "yawning": self._yawn_active,
-            "yawn_sustained": self._calc_sustained(),
-            "yawn_count": self._yawn_events,
-        }
+        return self._build_output(mar=mar_value)
 
     def reset(self):
         self._yawn_duration_frames = 0
         self._yawn_active = False
         self._yawn_events = 0
         self.mar_smoother.reset()
+
+    def _build_output(self, mar: Optional[float]) -> YawnMetricOutput:
+        return {
+            "mar": mar,
+            "yawning": self._yawn_active,
+            "yawn_sustained": self._calc_sustained(),
+            "yawn_count": self._yawn_events,
+        }
 
     def _calc_sustained(self) -> float:
         return min(self._yawn_duration_frames / self._min_yawn_duration_frames, 1.0)
