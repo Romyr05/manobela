@@ -46,11 +46,7 @@ export function LandingNavbar() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
         {/* Logo */}
         <div className="flex items-center space-x-2">
-          <Link
-            href="#"
-            className="flex items-center space-x-2 cursor-pointer"
-            target="_blank"
-            rel="noopener noreferrer">
+          <Link href="#" className="flex items-center space-x-2 cursor-pointer">
             <Logo size={32} />
             <span className="font-bold">Manobela</span>
           </Link>
@@ -122,7 +118,7 @@ export function LandingNavbar() {
                     </Button>
                     <Button variant="ghost" size="icon" asChild className="cursor-pointer h-8 w-8">
                       <a
-                        href="https://github.com/silicondeck/shadcn-dashboard-landing-template"
+                        href="https://github.com/popcorn-prophets/manobela"
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="GitHub Repository">
@@ -160,28 +156,6 @@ export function LandingNavbar() {
                     </div>
                   ))}
                 </nav>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="border-t p-6 space-y-4">
-                {/* Primary Actions */}
-                <div className="space-y-3">
-                  <Button variant="outline" size="lg" asChild className="w-full cursor-pointer">
-                    <Link href="/dashboard">
-                      <LayoutDashboard className="size-4" />
-                      Dashboard
-                    </Link>
-                  </Button>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" size="lg" asChild className="cursor-pointer">
-                      <Link href="/auth/sign-in">Sign In</Link>
-                    </Button>
-                    <Button asChild size="lg" className="cursor-pointer">
-                      <Link href="/auth/sign-up">Get Started</Link>
-                    </Button>
-                  </div>
-                </div>
               </div>
             </div>
           </SheetContent>

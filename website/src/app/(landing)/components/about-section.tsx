@@ -42,9 +42,7 @@ export function AboutSection() {
           <Badge variant="outline" className="mb-4">
             About Manobela
           </Badge>
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">
-            Eyes on the road. Safety beyond the dashboard.
-          </h2>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">Eyes on the road.</h2>
           <p className="text-lg text-muted-foreground mb-8">
             Manobela is a driver monitoring system that detects unsafe behaviors like distraction
             and drowsiness using only a smartphone camera. Because inference runs on our servers, it
