@@ -11,20 +11,20 @@ export interface MetricsOutput {
 }
 
 export interface EyeClosureMetricOutput {
-  ear_alert: boolean;
   ear: number | null;
-  perclos_alert: boolean;
+  eye_closed: boolean;
+  eye_closed_sustained: number;
   perclos: number | null;
+  perclos_alert: boolean;
 }
 
 export interface YawnMetricOutput {
   mar: number | null;
   yawning: boolean;
-  yawn_progress: number;
+  yawn_sustained: number;
   yawn_count: number;
-  yawn_rate: number;
-  yawn_rate_alert: boolean;
 }
+
 export interface HeadPoseMetricOutput {
   yaw_alert: boolean;
   pitch_alert: boolean;
@@ -32,19 +32,17 @@ export interface HeadPoseMetricOutput {
   yaw: number | null;
   pitch: number | null;
   roll: number | null;
-  yaw_sustained: number;
-  pitch_sustained: number;
-  roll_sustained: number;
+  head_pose_sustained: number;
 }
 
 export interface GazeMetricOutput {
   gaze_alert: boolean;
-  gaze_rate: number;
+  gaze_sustained: number;
 }
 
 export interface PhoneUsageMetricOutput {
   phone_usage: boolean;
-  phone_usage_rate: number;
+  phone_usage_sustained: number;
 }
 
 /** ID of a metric */

@@ -12,43 +12,58 @@ logger = logging.getLogger(__name__)
 
 
 class EyeClosureMetricOutput(MetricOutputBase):
-    ear_alert: bool
     ear: Optional[float]
-    perclos_alert: bool
+    eye_closed: bool
+    eye_closed_sustained: float
     perclos: Optional[float]
+    perclos_alert: bool
 
 
 class EyeClosureMetric(BaseMetric):
     """
     Eye closure metric using EAR per frame and PERCLOS over a rolling window.
-    Thresholds and window size are configurable per instance.
     """
 
     DEFAULT_EAR_THRESHOLD = 0.15
+    DEFAULT_EAR_HYSTERESIS_RATIO = 0.9
     DEFAULT_PERCLOS_THRESHOLD = 0.4
+    DEFAULT_MIN_EYE_CLOSED_DURATION_SEC = 0.25
     DEFAULT_WINDOW_SEC = 10
     DEFAULT_SMOOTHER_ALPHA = 0.6
 
     def __init__(
         self,
         ear_threshold: float = DEFAULT_EAR_THRESHOLD,
+        hysteresis_ratio: float = DEFAULT_EAR_HYSTERESIS_RATIO,
         perclos_threshold: float = DEFAULT_PERCLOS_THRESHOLD,
+        min_eye_closed_duration_sec: float = DEFAULT_MIN_EYE_CLOSED_DURATION_SEC,
         window_sec: int = DEFAULT_WINDOW_SEC,
         smoother_alpha: float = DEFAULT_SMOOTHER_ALPHA,
     ):
         """
         Args:
             ear_threshold: EAR value below which eyes are considered closed.
+            hysteresis_ratio: Ratio of close_threshold to open_threshold (0.0-1.0).
             perclos_threshold: PERCLOS ratio above which alert is triggered.
+            min_eye_closed_duration_sec: Minimum duration in seconds to count as eye closed.
             window_sec: Rolling window duration in seconds.
             smoother_alpha: Smoother alpha for EAR smoothing.
         """
 
-        self.ear_threshold = ear_threshold
+        self.ear_threshold_open = ear_threshold
+        self.ear_threshold_close = ear_threshold * hysteresis_ratio
         self.perclos_threshold = perclos_threshold
+
+        # Convert duration from seconds to frames based on backend target FPS
+        self._min_eye_closed_duration_frames = max(
+            1, int(min_eye_closed_duration_sec * settings.target_fps)
+        )
 
         # Convert seconds to frames based on backend target FPS
         self.window_size = max(1, int(window_sec * settings.target_fps))
+
+        self._eye_closed_duration_frames = 0
+        self._eye_closed = False
 
         self.eye_history: deque[bool] = deque(maxlen=self.window_size)
 
@@ -59,10 +74,11 @@ class EyeClosureMetric(BaseMetric):
         if not landmarks:
             perclos = self._perclos()
             return {
-                "ear_alert": False,
                 "ear": None,
-                "perclos_alert": perclos >= self.perclos_threshold,
+                "eye_closed": self._eye_closed,
+                "eye_closed_sustained": self._calc_sustained(),
                 "perclos": perclos,
+                "perclos_alert": perclos >= self.perclos_threshold,
             }
 
         # Computer EAR
@@ -73,33 +89,44 @@ class EyeClosureMetric(BaseMetric):
             logger.debug(f"EAR computation failed: {e}")
             perclos = self._perclos()
             return {
-                "ear_alert": False,
                 "ear": None,
-                "perclos_alert": perclos >= self.perclos_threshold,
+                "eye_closed": self._eye_closed,
+                "eye_closed_sustained": self._calc_sustained(),
                 "perclos": perclos,
+                "perclos_alert": perclos >= self.perclos_threshold,
             }
 
         if ear_value is None:
             perclos = self._perclos()
             return {
-                "ear_alert": False,
+                "eye_closed": self._eye_closed,
                 "ear": None,
+                "eye_closed_sustained": self._calc_sustained(),
                 "perclos_alert": perclos >= self.perclos_threshold,
                 "perclos": perclos,
             }
 
-        ear_alert = ear_value < self.ear_threshold
-        self.eye_history.append(ear_alert)
+        if ear_value <= self.ear_threshold_close:
+            self._eye_closed_duration_frames += 1
+        elif ear_value >= self.ear_threshold_open:
+            self._eye_closed_duration_frames = 0
+            self._eye_closed = False
+
+        if self._eye_closed_duration_frames >= self._min_eye_closed_duration_frames:
+            self._eye_closed = True
+
+        self.eye_history.append(ear_value <= self.ear_threshold_close)
 
         # Compute PERCLOS
         perclos = self._perclos()
         perclos_alert = perclos >= self.perclos_threshold
 
         return {
-            "ear_alert": ear_alert,
             "ear": ear_value,
-            "perclos_alert": perclos_alert,
+            "eye_closed": self._eye_closed,
+            "eye_closed_sustained": self._calc_sustained(),
             "perclos": perclos,
+            "perclos_alert": perclos_alert,
         }
 
     def reset(self):
@@ -110,3 +137,6 @@ class EyeClosureMetric(BaseMetric):
         return (
             sum(self.eye_history) / len(self.eye_history) if self.eye_history else 0.0
         )
+
+    def _calc_sustained(self) -> float:
+        return min(self._eye_closed_duration_frames / self._min_eye_closed_duration_frames, 1.0)

@@ -1,5 +1,4 @@
 import logging
-from collections import deque
 from typing import Optional
 
 from app.core.config import settings
@@ -17,9 +16,7 @@ class HeadPoseMetricOutput(MetricOutputBase):
     yaw: Optional[float]
     pitch: Optional[float]
     roll: Optional[float]
-    yaw_sustained: float
-    pitch_sustained: float
-    roll_sustained: float
+    head_pose_sustained: float
 
 
 class HeadPoseMetric(BaseMetric):
@@ -37,42 +34,29 @@ class HeadPoseMetric(BaseMetric):
     DEFAULT_PITCH_THRESHOLD = 10.0
     DEFAULT_ROLL_THRESHOLD = 30.0
 
-    # Rolling window for sustained deviation
-    DEFAULT_WINDOW_SEC = 5
+    DEFAULT_MIN_SUSTAINED_SEC = 0.5
 
     def __init__(
         self,
         yaw_threshold: float = DEFAULT_YAW_THRESHOLD,
         pitch_threshold: float = DEFAULT_PITCH_THRESHOLD,
         roll_threshold: float = DEFAULT_ROLL_THRESHOLD,
-        window_sec: int = DEFAULT_WINDOW_SEC,
+        min_sustained_sec: float = DEFAULT_MIN_SUSTAINED_SEC,
     ):
-        """
-        Args:
-            yaw_threshold: Yaw angle (degrees) beyond which alert is triggered.
-                          Positive = turning right, negative = turning left.
-            pitch_threshold: Pitch angle (degrees) beyond which alert is triggered.
-                            Positive = looking up, negative = looking down.
-            roll_threshold: Roll angle (degrees) beyond which alert is triggered.
-                            Positive = clockwise tilt, negative = counterclockwise tilt.
-            window_sec: Rolling window duration for sustained deviation detection.
-        """
-
         self.yaw_threshold = yaw_threshold
         self.pitch_threshold = pitch_threshold
         self.roll_threshold = roll_threshold
 
-        # Convert seconds to frames
-        fps = getattr(settings, "target_fps", 30)  # Provide a sensible default
-        if not isinstance(fps, (int, float)) or fps <= 0:
-            fps = 30
-            logger.warning("Invalid target_fps, defaulting to %s", fps)
+        fps = getattr(settings, "target_fps", 30)
+        self.min_sustained_frames = max(1, int(min_sustained_sec * fps))
 
-        self.window_size = max(1, int(window_sec * fps))
+        self.yaw_counter = 0
+        self.pitch_counter = 0
+        self.roll_counter = 0
 
-        self.yaw_history: deque[bool] = deque(maxlen=self.window_size)
-        self.pitch_history: deque[bool] = deque(maxlen=self.window_size)
-        self.roll_history: deque[bool] = deque(maxlen=self.window_size)
+        self.yaw_state = False
+        self.pitch_state = False
+        self.roll_state = False
 
     def update(self, context: FrameContext) -> HeadPoseMetricOutput:
         landmarks = context.face_landmarks
@@ -84,12 +68,9 @@ class HeadPoseMetric(BaseMetric):
                 "yaw_alert": False,
                 "pitch_alert": False,
                 "roll_alert": False,
-                "yaw_sustained": self._sustained_ratio(self.yaw_history),
-                "pitch_sustained": self._sustained_ratio(self.pitch_history),
-                "roll_sustained": self._sustained_ratio(self.roll_history),
+                "head_pose_sustained": self._calc_sustained(),
             }
 
-        # Compute head pose angles
         try:
             yaw, pitch, roll = compute_head_pose_angles_2d(landmarks)
         except (ValueError, IndexError, ZeroDivisionError) as e:
@@ -101,44 +82,52 @@ class HeadPoseMetric(BaseMetric):
                 "yaw_alert": False,
                 "pitch_alert": False,
                 "roll_alert": False,
-                "yaw_sustained": self._sustained_ratio(self.yaw_history),
-                "pitch_sustained": self._sustained_ratio(self.pitch_history),
-                "roll_sustained": self._sustained_ratio(self.roll_history),
+                "head_pose_sustained": self._calc_sustained(),
             }
 
-        # Check thresholds (absolute values for all angles)
-        yaw_alert = abs(yaw) > self.yaw_threshold
-        pitch_alert = abs(pitch) > self.pitch_threshold
-        roll_alert = abs(roll) > self.roll_threshold
+        # Detect deviation
+        yaw_deviation = abs(yaw) > self.yaw_threshold
+        pitch_deviation = abs(pitch) > self.pitch_threshold
+        roll_deviation = abs(roll) > self.roll_threshold
 
-        # Update history
-        self.yaw_history.append(yaw_alert)
-        self.pitch_history.append(pitch_alert)
-        self.roll_history.append(roll_alert)
+        # Debounce counters
+        self.yaw_counter = self.yaw_counter + 1 if yaw_deviation else 0
+        self.pitch_counter = self.pitch_counter + 1 if pitch_deviation else 0
+        self.roll_counter = self.roll_counter + 1 if roll_deviation else 0
 
-        # Compute sustained deviation
-        yaw_sustained = self._sustained_ratio(self.yaw_history)
-        pitch_sustained = self._sustained_ratio(self.pitch_history)
-        roll_sustained = self._sustained_ratio(self.roll_history)
+        # Update state only after sustained duration
+        if self.yaw_counter >= self.min_sustained_frames:
+            self.yaw_state = True
+        if self.pitch_counter >= self.min_sustained_frames:
+            self.pitch_state = True
+        if self.roll_counter >= self.min_sustained_frames:
+            self.roll_state = True
+
+        # Reset state if back to normal
+        if not yaw_deviation:
+            self.yaw_state = False
+        if not pitch_deviation:
+            self.pitch_state = False
+        if not roll_deviation:
+            self.roll_state = False
 
         return {
             "yaw": yaw,
             "pitch": pitch,
             "roll": roll,
-            "yaw_alert": yaw_alert,
-            "pitch_alert": pitch_alert,
-            "roll_alert": roll_alert,
-            "yaw_sustained": yaw_sustained,
-            "pitch_sustained": pitch_sustained,
-            "roll_sustained": roll_sustained,
+            "yaw_alert": self.yaw_state,
+            "pitch_alert": self.pitch_state,
+            "roll_alert": self.roll_state,
+            "head_pose_sustained": self._calc_sustained(),
         }
 
     def reset(self):
-        self.last_angles = None
-        self.yaw_history.clear()
-        self.pitch_history.clear()
-        self.roll_history.clear()
+        self.yaw_counter = 0
+        self.pitch_counter = 0
+        self.roll_counter = 0
+        self.yaw_state = False
+        self.pitch_state = False
+        self.roll_state = False
 
-    @staticmethod
-    def _sustained_ratio(history: deque[bool]) -> float:
-        return sum(history) / len(history) if history else 0.0
+    def _calc_sustained(self) -> float:
+        return min(max(self.yaw_counter, self.pitch_counter, self.roll_counter) / self.min_sustained_frames, 1.0)
