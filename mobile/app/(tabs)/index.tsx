@@ -15,12 +15,13 @@ import { useSettings } from '@/hooks/useSettings';
 export default function MonitorScreen() {
   useKeepAwake();
 
-  const { localStream } = useCamera();
   const { settings } = useSettings();
   const wsUrl = useMemo(() => {
     const baseUrl = settings.wsBaseUrl || process.env.EXPO_PUBLIC_WS_BASE || ''; // If we cant find just return blank or ''
     return baseUrl ? `${baseUrl}/driver-monitoring` : '';
   }, [settings.wsBaseUrl]);
+
+  const { localStream } = useCamera();
 
   const { sessionState, inferenceData, clientId, error, hasCamera, start, stop } =
     useMonitoringSession({
@@ -31,6 +32,8 @@ export default function MonitorScreen() {
   useAlerts({
     metrics: inferenceData?.metrics ?? null,
     enabled: sessionState === 'active',
+    enableSpeechAlerts: settings.enableSpeechAlerts,
+    enableHapticAlerts: settings.enableHapticAlerts,
   });
 
   const handleLowBattery = useCallback((level: number) => {

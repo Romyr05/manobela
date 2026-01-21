@@ -17,6 +17,11 @@ export const DEFAULT_STARTUP_DELAY_MS = 4_000;
  * - Coordinate alert playback and interruption
  */
 export class AlertManager {
+  constructor(
+    private enableSpeechAlerts: boolean,
+    private enableHapticAlerts: boolean
+  ) {}
+
   private alertStates = new Map<string, AlertState>();
   private currentAlert: AlertConfig | null = null;
 
@@ -54,7 +59,7 @@ export class AlertManager {
    * Play a one-time welcome message at session start.
    */
   private playWelcomeMessage(): void {
-    if (this.hasPlayedWelcome) return;
+    if (this.hasPlayedWelcome || !this.enableSpeechAlerts) return;
 
     this.hasPlayedWelcome = true;
     speak('Driver monitoring active. Drive safely.');
@@ -113,17 +118,24 @@ export class AlertManager {
     this.isSpeaking = true;
     this.currentAlert = config;
 
-    if (config.priority === AlertPriority.CRITICAL || config.priority === AlertPriority.HIGH) {
-      triggerHaptic({ type: 'warning' });
-    } else {
-      triggerHaptic({ type: 'impact' });
+    if (this.enableHapticAlerts) {
+      if (config.priority === AlertPriority.CRITICAL || config.priority === AlertPriority.HIGH) {
+        triggerHaptic({ type: 'warning' });
+      } else {
+        triggerHaptic({ type: 'impact' });
+      }
     }
 
-    speak(config.message, {
-      onDone: () => this.clearAlertState(config, state),
-      onStopped: () => this.clearAlertState(config, state),
-      onError: () => this.clearAlertState(config, state),
-    });
+    if (this.enableSpeechAlerts) {
+      speak(config.message, {
+        onDone: () => this.clearAlertState(config, state),
+        onStopped: () => this.clearAlertState(config, state),
+        onError: () => this.clearAlertState(config, state),
+      });
+    } else {
+      // If speech is disabled, still clear the state immediately
+      setTimeout(() => this.clearAlertState(config, state), 500);
+    }
   }
 
   /**
@@ -150,6 +162,15 @@ export class AlertManager {
     }
 
     return state;
+  }
+
+  setPreferences(speech: boolean, haptic: boolean) {
+    this.enableSpeechAlerts = speech;
+    this.enableHapticAlerts = haptic;
+
+    if (!speech) {
+      stopSpeaking();
+    }
   }
 
   /**
