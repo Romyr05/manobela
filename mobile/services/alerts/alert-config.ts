@@ -16,45 +16,45 @@ const getMetric = <K extends keyof MetricsOutput>(
 export const ALERT_CONFIGS: AlertConfig[] = [
   {
     id: 'no_face',
-    message: 'No face detected',
+    message: 'No face detected. Please reposition yourself.',
     priority: AlertPriority.CRITICAL,
-    cooldownMs: 10000,
+    cooldownMs: 8000,
     condition: (m: MetricsOutput) => !m.face_detected,
   },
   {
     id: 'eye_closure_perclos',
-    message: 'Your eyes are closing frequently',
+    message: 'Your eyes are closing frequently. Take a break if needed.',
     priority: AlertPriority.HIGH,
     cooldownMs: 15000,
     condition: (m: MetricsOutput) => !!getMetric(m, 'eye_closure')?.perclos_alert,
   },
   {
     id: 'eye_closure',
-    message: `Keep your eyes open`,
+    message: 'Please keep your eyes open.',
     priority: AlertPriority.HIGH,
     cooldownMs: 15000,
     condition: (m: MetricsOutput) => !!getMetric(m, 'eye_closure')?.eye_closed_sustained,
   },
   {
     id: 'yawn',
-    message: 'Sleepy, huh?',
+    message: 'You seem sleepy. Consider taking a short break.',
     priority: AlertPriority.LOW,
-    cooldownMs: 20000,
+    cooldownMs: 25000,
     condition: (m: MetricsOutput) => !!getMetric(m, 'yawn')?.yawning,
   },
   {
     id: 'yawn_count',
-    message: 'You yawned too much, maybe you need a break?',
+    message: 'You have been yawning frequently. Consider resting.',
     priority: AlertPriority.LOW,
-    cooldownMs: 20000,
+    cooldownMs: 60000,
     condition: (m: MetricsOutput) => {
       const yawnCount = getMetric(m, 'yawn')?.yawn_count;
-      return typeof yawnCount === 'number' ? yawnCount > 0 && yawnCount % 3 === 0 : false;
+      return typeof yawnCount === 'number' && yawnCount > 0 && yawnCount % 3 === 0;
     },
   },
   {
     id: 'head_pose',
-    message: 'Keep your head facing forward',
+    message: 'Please keep your head facing forward.',
     priority: AlertPriority.MEDIUM,
     cooldownMs: 12000,
     condition: (m: MetricsOutput) => {
@@ -64,14 +64,14 @@ export const ALERT_CONFIGS: AlertConfig[] = [
   },
   {
     id: 'gaze_off_road',
-    message: 'Keep your eyes on the road',
+    message: 'Keep your eyes on the road.',
     priority: AlertPriority.MEDIUM,
-    cooldownMs: 10000,
+    cooldownMs: 15000,
     condition: (m: MetricsOutput) => !!getMetric(m, 'gaze')?.gaze_alert,
   },
   {
     id: 'phone_usage',
-    message: 'Put down your phone',
+    message: 'Phone usage detected. Please stay focused.',
     priority: AlertPriority.CRITICAL,
     cooldownMs: 10000,
     condition: (m: MetricsOutput) => !!getMetric(m, 'phone_usage')?.phone_usage,
