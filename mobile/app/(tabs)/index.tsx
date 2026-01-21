@@ -7,17 +7,32 @@ import { ConnectionStatus } from '@/components/connection-status';
 import { Stack } from 'expo-router';
 import { MetricsDisplay } from '@/components/metrics/metrics-display';
 
-const WS_BASE = process.env.EXPO_PUBLIC_WS_BASE!;
-const WS_URL = `${WS_BASE}/driver-monitoring`;
+
+import {useSettings} from '@/hooks/useSettings';
 
 export default function MonitorScreen() {
   const { localStream } = useCamera();
+  const {settings} = useSettings();
+  const wsUrl = useMemo(() =>{
+    const baseUrl = settings.wsBaseUrl || process.env.EXPO_PUBLIC_WS_BASE || ''; // If we cant find just return blank or ''
+    return baseUrl ? `${baseUrl}/driver-monitoring` : '';
+  },[settings.wsBaseUrl]);
 
-  const { sessionState, inferenceData, clientId, error, hasCamera, start, stop } =
-    useMonitoringSession({
-      url: WS_URL,
-      stream: localStream,
-    });
+
+  const {
+    sessionState,
+    inferenceData,
+    clientId,
+    transportStatus,
+    connectionStatus,
+    error,
+    hasCamera,
+    start,
+    stop,
+  } = useMonitoringSession({
+    url: wsUrl,
+    stream: localStream,
+  });
 
   const handleToggle = useCallback(() => {
     if (sessionState === 'idle') {
