@@ -8,7 +8,7 @@ import {
 import { Text } from '@/components/ui/text';
 import { GUIDE_SECTIONS } from './guide-content';
 
-export default function GuideScreen() {
+export default function MapsScreen() {
   return (
     <ScrollView className="flex-1 bg-background" contentContainerClassName="p-4 gap-4">
       <Text className="mb-6 text-muted-foreground">
