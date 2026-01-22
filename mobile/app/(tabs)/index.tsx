@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Alert, View, ScrollView } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useLowBattery } from '@/hooks/useLowBattery';
@@ -57,6 +57,20 @@ export default function MonitorScreen() {
     const height = inferenceData?.resolution?.height ?? 480;
     return width / height;
   }, [inferenceData?.resolution?.width, inferenceData?.resolution?.height]);
+
+  const lastErrorRef = useRef<string | null>(null);
+  // --- Friendly Message Error block ---
+    useEffect(() => {
+    if (!error) {
+      lastErrorRef.current = null;
+      return;
+    }
+    if (error === lastErrorRef.current) return;
+    lastErrorRef.current = error;
+    Alert.alert('Connection Error', error);
+  }, [error]);
+
+  // ------------
 
   return (
     <ScrollView className="flex-1 px-2 py-1">
