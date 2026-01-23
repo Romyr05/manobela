@@ -19,13 +19,13 @@ export default function SessionsList({
       keyExtractor={(item) => item.id}
       contentContainerStyle={{ paddingBottom: 24 }}
       ListHeaderComponent={
-        <View className="px-3 py-2">
+        <View className="py-2">
           <Text className="text-lg font-bold">Sessions</Text>
           <Text className="text-xs text-muted-foreground">Tap a session to view details.</Text>
         </View>
       }
       ListEmptyComponent={
-        <View className="px-3 py-8">
+        <View className="py-8">
           <Text className="text-center text-sm text-muted-foreground">No sessions found.</Text>
         </View>
       }

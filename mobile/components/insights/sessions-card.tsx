@@ -18,7 +18,7 @@ export default function SessionCard({
   const isActive = !session.endedAt;
 
   return (
-    <TouchableOpacity onPress={onPress} className="mx-3 mb-4">
+    <TouchableOpacity onPress={onPress} className="mb-3">
       <Card className={isActive ? 'border-2 border-destructive/50' : ''}>
         <CardContent className="space-y-2">
           <View className="flex-row items-center justify-between">

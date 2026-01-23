@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { View, FlatList } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,9 +8,10 @@ import { useDatabase } from '@/components/database-provider';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { desc, eq } from 'drizzle-orm';
 
+import SessionTimeRange from '@/components/insights/session-time-range';
 import { EarTrendChart } from '@/components/charts/ear-trend';
 import { MarTrendChart } from '@/components/charts/mar-trend';
-import SessionTimeRange from '@/components/insights/session-time-range';
+import { KpiCard } from '@/components/insights/kpi-card';
 
 export default function SessionDetailsScreen() {
   const { db } = useDatabase();
@@ -31,60 +32,133 @@ export default function SessionDetailsScreen() {
     [sessionId]
   );
 
-  const earValues = useMemo(() => {
-    const sorted = [...sessionMetrics].sort((a, b) => a.timestamp - b.timestamp);
-    return sorted
-      .map((m) => (typeof m.ear === 'number' && !isNaN(m.ear) ? m.ear : null))
-      .filter((v) => v !== null) as number[];
+  const {
+    eyeClosedPercent,
+    gazeAlertPercent,
+    headPoseAlertPercent,
+    phoneUsagePercent,
+    faceMissingPercent,
+    totalYawnCount,
+    earValues,
+    marValues,
+  } = useMemo(() => {
+    const total = sessionMetrics.length;
+    if (!total) {
+      return {
+        eyeClosedPercent: 0,
+        gazeAlertPercent: 0,
+        headPoseAlertPercent: 0,
+        phoneUsagePercent: 0,
+        faceMissingPercent: 0,
+        totalYawnCount: 0,
+        earValues: [] as number[],
+        marValues: [] as number[],
+      };
+    }
+
+    let eyeClosed = 0;
+    let gazeAlerts = 0;
+    let headPoseAlerts = 0;
+    let phoneUsage = 0;
+    let faceMissing = 0;
+
+    const ear: number[] = [];
+    const mar: number[] = [];
+
+    // Iterate oldest → newest for chart ordering
+    for (let i = sessionMetrics.length - 1; i >= 0; i--) {
+      const m = sessionMetrics[i];
+
+      if (m.eyeClosed) eyeClosed++;
+      if (m.gazeAlert) gazeAlerts++;
+      if (m.phoneUsage) phoneUsage++;
+      if (m.faceMissing) faceMissing++;
+      if (m.yawAlert || m.pitchAlert || m.rollAlert) headPoseAlerts++;
+
+      if (typeof m.ear === 'number' && !Number.isNaN(m.ear)) {
+        ear.push(m.ear);
+      }
+      if (typeof m.mar === 'number' && !Number.isNaN(m.mar)) {
+        mar.push(m.mar);
+      }
+    }
+
+    return {
+      eyeClosedPercent: eyeClosed / total,
+      gazeAlertPercent: gazeAlerts / total,
+      headPoseAlertPercent: headPoseAlerts / total,
+      phoneUsagePercent: phoneUsage / total,
+      faceMissingPercent: faceMissing / total,
+      // latest value due to DESC(timestamp) query
+      totalYawnCount: sessionMetrics[0]?.yawnCount ?? 0,
+      earValues: ear,
+      marValues: mar,
+    };
   }, [sessionMetrics]);
 
-  const marValues = useMemo(() => {
-    const sorted = [...sessionMetrics].sort((a, b) => a.timestamp - b.timestamp);
-    return sorted
-      .map((m) => (typeof m.mar === 'number' && !isNaN(m.mar) ? m.mar : null))
-      .filter((v) => v !== null) as number[];
-  }, [sessionMetrics]);
+  const HeaderComponent = useCallback(() => {
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Session Details' }} />
 
-  const HeaderComponent = () => (
-    <>
-      <Stack.Screen options={{ title: 'Session Details' }} />
-
-      {session ? (
-        <View className="mb-4">
-          <SessionTimeRange session={session} />
-          <Text className="text-sm text-muted-foreground">Client ID: {session.clientId}</Text>
-        </View>
-      ) : (
-        <Text className="text-sm text-muted-foreground">Session not found.</Text>
-      )}
-
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Eye Openness Trend</CardTitle>
-          <CardDescription>Lower values may indicate fatigue.</CardDescription>
-          <Text className="text-xs text-muted-foreground">Based on Eye Aspect Ratio (EAR).</Text>
-        </CardHeader>
-        <CardContent>
-          <View style={{ height: 250 }}>
-            <EarTrendChart data={earValues} />
+        {session ? (
+          <View className="mb-4">
+            <SessionTimeRange session={session} />
+            <Text className="text-sm text-muted-foreground">Client ID: {session.clientId}</Text>
           </View>
-        </CardContent>
-      </Card>
+        ) : (
+          <Text className="text-sm text-muted-foreground">Session not found.</Text>
+        )}
 
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Yawning Trend</CardTitle>
-          <CardDescription>Spikes in values may indicate yawning.</CardDescription>
-          <Text className="text-xs text-muted-foreground">Based on Mouth Aspect Ratio (MAR).</Text>
-        </CardHeader>
-        <CardContent>
-          <View style={{ height: 250 }}>
-            <MarTrendChart data={marValues} />
-          </View>
-        </CardContent>
-      </Card>
-    </>
-  );
+        <KpiCard
+          eyeClosedPercent={eyeClosedPercent}
+          totalYawnCount={totalYawnCount}
+          phoneUsagePercent={phoneUsagePercent}
+          gazeAlertPercent={gazeAlertPercent}
+          headPoseAlertPercent={headPoseAlertPercent}
+          faceMissingPercent={faceMissingPercent}
+        />
+
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>Eye Openness Trend</CardTitle>
+            <CardDescription>Lower values may indicate fatigue.</CardDescription>
+            <Text className="text-xs text-muted-foreground">Based on Eye Aspect Ratio (EAR).</Text>
+          </CardHeader>
+          <CardContent>
+            <View style={{ height: 250 }}>
+              <EarTrendChart data={earValues} />
+            </View>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>Yawning Trend</CardTitle>
+            <CardDescription>Spikes in values may indicate yawning.</CardDescription>
+            <Text className="text-xs text-muted-foreground">
+              Based on Mouth Aspect Ratio (MAR).
+            </Text>
+          </CardHeader>
+          <CardContent>
+            <View style={{ height: 250 }}>
+              <MarTrendChart data={marValues} />
+            </View>
+          </CardContent>
+        </Card>
+      </>
+    );
+  }, [
+    session,
+    eyeClosedPercent,
+    totalYawnCount,
+    phoneUsagePercent,
+    gazeAlertPercent,
+    headPoseAlertPercent,
+    faceMissingPercent,
+    earValues,
+    marValues,
+  ]);
 
   return (
     <View className="flex-1 px-3 py-4">
