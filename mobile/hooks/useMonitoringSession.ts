@@ -25,8 +25,8 @@ interface UseMonitoringSessionReturn {
   error: string | null;
   hasCamera: boolean;
   errorDetails: string | null;
-  start: () => void;
-  stop: () => void;
+  start: () => Promise<void>;
+  stop: () => Promise<void>;
 }
 
 /**
@@ -116,10 +116,9 @@ export const useMonitoringSession = ({
   const start = useCallback(async () => {
     if (sessionState !== 'idle') return;
 
+    setSessionState('starting');
     try {
-      setSessionState('starting');
       startConnection();
-
       await sessionLogger.startSession(clientId);
     } catch (err) {
       console.error('Failed to start connection:', err);
