@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, FlatList } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,6 +7,9 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useDatabase } from '@/components/database-provider';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { desc, eq } from 'drizzle-orm';
+
+import { EarTrendChart } from '@/components/charts/ear-trend';
+import { MarTrendChart } from '@/components/charts/mar-trend';
 
 export default function SessionDetailsScreen() {
   const db = useDatabase();
@@ -28,45 +31,100 @@ export default function SessionDetailsScreen() {
     [sessionId]
   );
 
+  const earValues = useMemo(() => {
+    const sorted = [...sessionMetrics].sort((a, b) => a.timestamp - b.timestamp);
+    return sorted
+      .map((m) => (typeof m.ear === 'number' && !isNaN(m.ear) ? m.ear : null))
+      .filter((v) => v !== null) as number[];
+  }, [sessionMetrics]);
+
+  const marValues = useMemo(() => {
+    const sorted = [...sessionMetrics].sort((a, b) => a.timestamp - b.timestamp);
+    return sorted
+      .map((m) => (typeof m.mar === 'number' && !isNaN(m.mar) ? m.mar : null))
+      .filter((v) => v !== null) as number[];
+  }, [sessionMetrics]);
+
+  const HeaderComponent = () => (
+    <>
+      {session ? (
+        <View className="mb-4">
+          <Text className="text-sm font-semibold">
+            {session ? (
+              <>
+                {new Date(session.startedAt).toLocaleDateString()}
+                {' | '}
+                {new Date(session.startedAt).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true,
+                })}
+                {' to '}
+                {session.endedAt
+                  ? new Date(session.endedAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true,
+                    })
+                  : 'now'}
+              </>
+            ) : (
+              '-'
+            )}
+          </Text>
+
+          <Text className="text-sm text-muted-foreground">
+            Duration:{' '}
+            {session.durationMs != null
+              ? new Date(session.durationMs).toISOString().slice(14, 19)
+              : '-'}
+          </Text>
+          <Text className="text-sm text-muted-foreground">Client ID: {session.clientId}</Text>
+        </View>
+      ) : (
+        <Text className="text-sm text-muted-foreground">Session not found.</Text>
+      )}
+
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>Eye Openness Trend</CardTitle>
+          <CardDescription>Lower values may indicate fatigue.</CardDescription>
+          <Text className="text-xs text-muted-foreground">Based on Eye Aspect Ratio (EAR).</Text>
+        </CardHeader>
+        <CardContent>
+          <EarTrendChart data={earValues} />
+        </CardContent>
+      </Card>
+
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>Yawning Trend</CardTitle>
+          <CardDescription>Spikes in values may indicate yawning.</CardDescription>
+          <Text className="text-xs text-muted-foreground">Based on Mouth Aspect Ratio (MAR).</Text>
+        </CardHeader>
+        <CardContent>
+          <MarTrendChart data={marValues} />
+        </CardContent>
+      </Card>
+
+      <Text className="mb-2 font-semibold">Metrics</Text>
+    </>
+  );
+
   return (
     <View className="flex-1 px-3 py-4">
       <Stack.Screen options={{ title: 'Session Details' }} />
 
-      <Text className="mb-4 text-lg font-bold">Session Metrics</Text>
-
-      {!session && <Text className="text-sm text-gray-500">Session not found.</Text>}
-
-      {session && (
-        <Card className="mb-4">
-          <CardHeader>
-            <CardTitle>Session</CardTitle>
-            <CardDescription>{new Date(session.startedAt).toLocaleString()}</CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <Text>ID: {session.id}</Text>
-            <Text>Client: {session.clientId}</Text>
-            <Text>Start: {new Date(session.startedAt).toLocaleString()}</Text>
-            <Text>
-              End: {session.endedAt ? new Date(session.endedAt).toLocaleString() : 'Still running'}
-            </Text>
-            <Text>Duration: {session.durationMs ?? '-'} ms</Text>
-          </CardContent>
-        </Card>
-      )}
-
-      <Text className="mb-2 font-semibold">Metrics</Text>
-
       <FlatList
         data={sessionMetrics}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={HeaderComponent}
         renderItem={({ item: m }) => (
           <Card className="mb-3">
             <CardHeader>
               <CardTitle>Metric</CardTitle>
               <CardDescription>{new Date(m.timestamp).toLocaleTimeString()}</CardDescription>
             </CardHeader>
-
             <CardContent>
               <Text>EAR: {m.ear}</Text>
               <Text>MAR: {m.mar}</Text>
