@@ -41,6 +41,7 @@ export const MediaStreamView = ({
 
   const landmarks = inferenceData?.face_landmarks || null;
   const objectDetections = inferenceData?.object_detections || null;
+  const isCalibrating = inferenceData?.metrics?.head_pose?.calibrating === true;
 
   const videoWidth = inferenceData?.resolution?.width || 480;
   const videoHeight = inferenceData?.resolution?.height || 320;
@@ -144,6 +145,14 @@ export const MediaStreamView = ({
           </Pressable>
         </View>
       </View>
+
+      {sessionState === 'active' && isCalibrating && (
+        <View className="absolute left-0 right-0 top-14 items-center">
+          <View className="rounded-full bg-black/60 px-3 py-1">
+            <Text className="text-xs text-white">Calibrating head pose...</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 };

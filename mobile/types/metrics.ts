@@ -33,6 +33,7 @@ export interface HeadPoseMetricOutput {
   pitch: number | null;
   roll: number | null;
   head_pose_sustained: number;
+  calibrating?: boolean;
 }
 
 export interface GazeMetricOutput {

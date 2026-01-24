@@ -26,6 +26,7 @@ interface UseMonitoringSessionReturn {
   errorDetails: string | null;
   start: () => void;
   stop: () => void;
+  recalibrateHeadPose: () => void;
 }
 
 /**
@@ -44,6 +45,7 @@ export const useMonitoringSession = ({
     transportStatus,
     connectionStatus,
     onDataMessage,
+    sendDataMessage,
     error,
     errorDetails,
   } = useWebRTC({ url, stream });
@@ -127,6 +129,10 @@ export const useMonitoringSession = ({
     setInferenceData(null);
   }, [sessionState, cleanup]);
 
+  const recalibrateHeadPose = useCallback(() => {
+    sendDataMessage({ type: 'head_pose_recalibrate' });
+  }, [sendDataMessage]);
+
   return {
     sessionState,
     clientId,
@@ -139,5 +145,6 @@ export const useMonitoringSession = ({
     errorDetails,
     start,
     stop,
+    recalibrateHeadPose,
   };
 };
