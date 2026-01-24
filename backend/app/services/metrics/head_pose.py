@@ -11,8 +11,6 @@ logger = logging.getLogger(__name__)
 
 class HeadPoseMetricOutput(MetricOutputBase):
     """
-    Output schema for the head pose metric.
-
     Attributes:
         yaw_alert: Whether the yaw angle deviates from the configured threshold.
         pitch_alert: Whether the pitch angle deviates from the configured threshold.
