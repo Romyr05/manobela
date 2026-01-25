@@ -3,8 +3,9 @@ import { Linking, ScrollView, Alert } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { useColorScheme } from 'nativewind';
-import { useSettings } from '@/hooks/useSettings';
+import { useInsightRefresh } from '@/hooks/useInsightsRefresh';
 import { useDatabase } from '@/components/database-provider';
+import { useSettings } from '@/hooks/useSettings';
 import { clearLoggedSessions } from '@/services/logging/clear-logged-sessions';
 import { Section } from '@/components/setting/settings-section';
 import { SettingRow } from '@/components/setting/settings-row';
@@ -22,16 +23,22 @@ import {
   Bell,
   Vibrate,
   BookOpenText,
+  Braces,
+  Mail,
+  Bug,
+  Lightbulb,
 } from 'lucide-react-native';
-import { useInsightRefresh } from '@/hooks/useInsightsRefresh';
 
+const apiUrl = process.env.EXPO_PUBLIC_API_BASE || 'https://api.manobela.site';
 const websiteUrl = process.env.EXPO_PUBLIC_WEBSITE_BASE || 'https://manobela.site';
 const githubUrl =
   process.env.EXPO_PUBLIC_GITHUB_BASE || 'https://github.com/popcorn-prophets/manobela';
 
 const LINKS = {
   faq: `${websiteUrl}/#faq`,
-  issues: `${githubUrl}/issues`,
+  contact: `${websiteUrl}/#contact`,
+  reportBug: `${githubUrl}/issues/new?labels=enhancement&template=feature_request.md`,
+  requestFeature: `${githubUrl}/issues/new?labels=enhancement&template=feature_request.md`,
   privacy: `${websiteUrl}/privacy`,
   terms: `${websiteUrl}/terms`,
 };
@@ -100,10 +107,6 @@ export default function SettingsScreen() {
         <SettingRow icon={Languages} label="English" value="Only language available" disabled />
       </Section>
 
-      <Section title="Guide">
-        <SettingRow icon={BookOpenText} label="Guide" onPress={() => router.push('/guide')} />
-      </Section>
-
       <Section title="Alerts">
         <SettingRow
           icon={Bell}
@@ -141,27 +144,27 @@ export default function SettingsScreen() {
       </Section>
 
       <Section title="Support & Feedback">
+        <SettingRow icon={BookOpenText} label="Guide" onPress={() => router.push('/guide')} />
         <SettingRow icon={HelpCircle} label="FAQ" onPress={() => handleOpenLink(LINKS.faq)} />
+        <SettingRow icon={Mail} label="Contact" onPress={() => handleOpenLink(LINKS.contact)} />
         <SettingRow
-          icon={Github}
-          label="GitHub Issues"
-          onPress={() => handleOpenLink(LINKS.issues)}
+          icon={Bug}
+          label="Report Issues"
+          onPress={() => handleOpenLink(LINKS.reportBug)}
+        />
+        <SettingRow
+          icon={Lightbulb}
+          label="Request Features"
+          onPress={() => handleOpenLink(LINKS.requestFeature)}
         />
       </Section>
 
       <Section title="About">
         <SettingRow icon={Info} label="App" value={aboutValue} />
+        <SettingRow icon={Github} label="Open Source" onPress={() => handleOpenLink(githubUrl)} />
       </Section>
 
-      <Section title="API">
-        <SettingRow
-          icon={Globe}
-          label="Configure URL"
-          onPress={() => router.push('/settings/api-urls')}
-        />
-      </Section>
-
-      <Section title="Legal & Compliance">
+      <Section title="Legal">
         <SettingRow
           icon={ShieldCheck}
           label="Privacy Policy"
@@ -174,10 +177,19 @@ export default function SettingsScreen() {
         />
       </Section>
 
+      <Section title="API">
+        <SettingRow icon={Braces} label="Go to API" onPress={() => handleOpenLink(apiUrl)} />
+        <SettingRow
+          icon={Globe}
+          label="Configure URL"
+          onPress={() => router.push('/settings/api-urls')}
+        />
+      </Section>
+
       <Section title="Danger Zone" destructive>
         <SettingRow
           icon={Trash2}
-          label="Clear logged sessions"
+          label="Clear Logged Sessions"
           onPress={handleClearLoggedSessions}
           destructive
         />
