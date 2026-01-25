@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 
 import type { SelectedVideo, VideoProcessingResponse } from '@/types/video';
+import { sessionLogger } from '@/services/logging/session-logger';
 
 type UseVideoUploadResult = {
   selectedVideo: SelectedVideo | null;
@@ -117,6 +118,13 @@ export const useVideoUpload = (apiBaseUrl: string): UseVideoUploadResult => {
               : (responseBody as VideoProcessingResponse);
           const sanitized = { ...parsed, frames: undefined };
           setResult(sanitized);
+
+          // Log the uploaded video to the database for insights
+          if (selectedVideo) {
+            sessionLogger.logUploadedVideo(parsed, selectedVideo.name).catch((err) => {
+              console.error('Failed to log uploaded video session:', err);
+            });
+          }
         } catch {
           setError('Upload succeeded but response could not be parsed.');
         }
