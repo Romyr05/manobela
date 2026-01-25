@@ -15,8 +15,6 @@ logger = logging.getLogger(__name__)
 
 class GazeMetricOutput(MetricOutputBase):
     """
-    Output schema for the gaze metric.
-
     Attributes:
         gaze_alert: Whether gaze has been outside the configured range for at least min_sustained_sec.
         gaze_sustained: Fraction of time the gaze has been continuous.
