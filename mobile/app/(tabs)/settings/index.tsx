@@ -25,9 +25,9 @@ import {
 } from 'lucide-react-native';
 import { useInsightRefresh } from '@/hooks/useInsightsRefresh';
 
-const websiteUrl = process.env.NEXT_PUBLIC_WEBSITE_BASE || 'https://manobela.site';
+const websiteUrl = process.env.EXPO_PUBLIC_WEBSITE_BASE || 'https://manobela.site';
 const githubUrl =
-  process.env.NEXT_PUBLIC_GITHUB_BASE || 'https://github.com/popcorn-prophets/manobela';
+  process.env.EXPO_PUBLIC_GITHUB_BASE || 'https://github.com/popcorn-prophets/manobela';
 
 const LINKS = {
   faq: `${websiteUrl}/#faq`,

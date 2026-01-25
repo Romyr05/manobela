@@ -12,6 +12,9 @@ import { Github, Twitter, Linkedin, Youtube, Heart } from 'lucide-react';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
 
+const githubUrl =
+  process.env.EXPO_PUBLIC_GITHUB_BASE || 'https://github.com/popcorn-prophets/manobela';
+
 const newsletterSchema = z.object({
   email: z.string().email({
     message: 'Please enter a valid email address.',
@@ -41,7 +44,7 @@ const socialLinks = [
   { name: 'Twitter', href: '#', icon: Twitter },
   {
     name: 'GitHub',
-    href: 'https://github.com/popcorn-prophets/manobela',
+    href: `${githubUrl}`,
 
     icon: Github,
   },

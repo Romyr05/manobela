@@ -17,6 +17,9 @@ import { useTheme } from '@/hooks/use-theme';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
 
+const githubUrl =
+  process.env.EXPO_PUBLIC_GITHUB_BASE || 'https://github.com/popcorn-prophets/manobela';
+
 const navigationItems = [
   { name: 'Home', href: '/#hero' },
   { name: 'Features', href: '/#features' },
@@ -89,7 +92,7 @@ export function LandingNavbar() {
           </Button>
           <Button variant="ghost" size="icon" asChild className="cursor-pointer">
             <a
-              href="https://github.com/popcorn-prophets/manobela"
+              href={`${githubUrl}`}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub Repository">
@@ -129,7 +132,7 @@ export function LandingNavbar() {
                     </Button>
                     <Button variant="ghost" size="icon" asChild className="cursor-pointer h-8 w-8">
                       <a
-                        href="https://github.com/popcorn-prophets/manobela"
+                        href={`${githubUrl}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="GitHub Repository">
