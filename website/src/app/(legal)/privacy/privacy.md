@@ -86,4 +86,4 @@ Your continued use of the App after changes constitutes acceptance of the revise
 ## 9. Contact Information
 
 If you have questions or concerns about this Privacy Policy, please contact us at:
-**<popcornprophets@outlook.com>**
+<popcornprophets@outlook.com>
