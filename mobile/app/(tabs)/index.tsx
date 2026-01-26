@@ -9,6 +9,7 @@ import { MediaStreamView } from '@/components/media-stream-view';
 import { ConnectionStatus } from '@/components/connection-status';
 import { Stack } from 'expo-router';
 import { MetricsDisplay } from '@/components/metrics/metrics-display';
+import { Text } from '@/components/ui/text';
 
 import { useSettings } from '@/hooks/useSettings';
 
@@ -33,6 +34,7 @@ export default function MonitorScreen() {
     stop,
     sessionDurationMs,
     recalibrateHeadPose,
+    dataChannelState,
   } = useMonitoringSession({
     url: wsUrl,
     stream: localStream,
@@ -67,6 +69,9 @@ export default function MonitorScreen() {
     return width / height;
   }, [inferenceData?.resolution?.width, inferenceData?.resolution?.height]);
 
+  const isCalibrating = inferenceData?.metrics?.head_pose?.calibrating === true;
+  const canRecalibrate = sessionState === 'active' && dataChannelState === 'open';
+
   const lastErrorRef = useRef<string | null>(null);
   // --- Friendly Message Error block ---
   useEffect(() => {
@@ -87,7 +92,7 @@ export default function MonitorScreen() {
 
       <ConnectionStatus sessionState={sessionState} clientId={clientId} error={error} />
 
-      <View className="mb-4 w-full">
+      <View className="relative mb-4 w-full">
         <MediaStreamView
           stream={localStream}
           sessionState={sessionState}
@@ -96,11 +101,20 @@ export default function MonitorScreen() {
           hasCamera={hasCamera}
           onToggle={handleToggle}
           onRecalibrateHeadPose={recalibrateHeadPose}
+          recalibrateEnabled={canRecalibrate}
           style={{
             width: '100%',
             aspectRatio,
           }}
         />
+
+        {sessionState === 'active' && isCalibrating && (
+          <View className="absolute bottom-24 left-0 right-0 items-center" pointerEvents="none">
+            <View className="rounded-full bg-black/60 px-3 py-1">
+              <Text className="text-xs text-white">Calibrating head pose...</Text>
+            </View>
+          </View>
+        )}
       </View>
 
       <MetricsDisplay sessionState={sessionState} metricsOutput={inferenceData?.metrics ?? null} />

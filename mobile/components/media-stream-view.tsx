@@ -20,6 +20,7 @@ type MediaStreamViewProps = {
   hasCamera: boolean;
   onToggle: () => void;
   onRecalibrateHeadPose?: () => void;
+  recalibrateEnabled?: boolean;
 };
 
 /**
@@ -35,6 +36,7 @@ export const MediaStreamView = ({
   hasCamera,
   onToggle,
   onRecalibrateHeadPose,
+  recalibrateEnabled = true,
 }: MediaStreamViewProps) => {
   const [viewDimensions, setViewDimensions] = useState({ width: 0, height: 0 });
   const [showOverlay, setShowOverlay] = useState(true);
@@ -43,8 +45,6 @@ export const MediaStreamView = ({
 
   const landmarks = inferenceData?.face_landmarks || null;
   const objectDetections = inferenceData?.object_detections || null;
-  const isCalibrating = inferenceData?.metrics?.head_pose?.calibrating === true;
-
   const videoWidth = inferenceData?.resolution?.width || 480;
   const videoHeight = inferenceData?.resolution?.height || 320;
 
@@ -60,6 +60,7 @@ export const MediaStreamView = ({
   const showDetections = showOverlays && objectDetections != null;
   const formattedDuration = formatDuration(sessionDurationMs);
   const canRecalibrate = sessionState === 'active' && Boolean(onRecalibrateHeadPose);
+  const recalibrateActive = canRecalibrate && recalibrateEnabled;
 
   return (
     <View
@@ -114,7 +115,9 @@ export const MediaStreamView = ({
           onPress={onRecalibrateHeadPose}
           accessibilityRole="button"
           accessibilityLabel="Recalibrate head pose"
-          style={styles.recalibrateButton}>
+          accessibilityState={{ disabled: !recalibrateActive }}
+          disabled={!recalibrateActive}
+          style={[styles.recalibrateButton, !recalibrateActive && styles.recalibrateDisabled]}>
           <View style={styles.recalibrateRing}>
             <ScanFace size={22} color="white" />
           </View>
@@ -160,14 +163,6 @@ export const MediaStreamView = ({
           </Pressable>
         </View>
       </View>
-
-      {sessionState === 'active' && isCalibrating && (
-        <View className="absolute left-0 right-0 bottom-14 items-center">
-          <View className="rounded-full bg-black/60 px-3 py-1">
-            <Text className="text-xs text-white">Calibrating head pose...</Text>
-          </View>
-        </View>
-      )}
     </View>
   );
 };
@@ -184,7 +179,7 @@ const formatDuration = (durationMs: number) => {
 
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
-
+// This can be transfered to components, but too lazy
 const styles = StyleSheet.create({
   recalibrateButton: {
     position: 'absolute',
@@ -204,5 +199,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  recalibrateDisabled: {
+    opacity: 0.45,
   },
 });

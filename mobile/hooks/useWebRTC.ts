@@ -26,9 +26,12 @@ interface UseWebRTCProps {
   rtcConfig?: RTCConfiguration;
 }
 
+export type DataChannelState = 'connecting' | 'open' | 'closing' | 'closed';
+
 interface UseWebRTCReturn {
   transportStatus: TransportStatus;
   connectionStatus: RTCPeerConnectionState;
+  dataChannelState: DataChannelState;
   clientId: string | null;
   error: string | null;
   errorDetails: string | null; // implement in return
@@ -60,6 +63,7 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const transportRef = useRef<SignalingTransport | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
+  const [dataChannelState, setDataChannelState] = useState<DataChannelState>('closed');
 
   // Fan-out handler registries
   const signalingHandlers = useRef<((msg: SignalingMessage) => void)[]>([]);
@@ -201,10 +205,12 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
     (pc: RTCPeerConnection) => {
       const channel = pc.createDataChannel('data', { ordered: true });
       dataChannelRef.current = channel;
+      setDataChannelState(channel.readyState as DataChannelState);
 
       // @ts-ignore
       channel.onopen = () => {
         console.log('Data channel opened');
+        setDataChannelState('open');
         // maybe send initial handshake or keepalive
       };
 
@@ -217,11 +223,13 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
       // @ts-ignore
       channel.onclose = () => {
         console.log('Data channel closed');
+        setDataChannelState('closed');
       };
 
       // @ts-ignore
       channel.onerror = (err) => {
         console.error('Data channel error:', err);
+        setDataChannelState(channel.readyState as DataChannelState);
       };
 
       return channel;
@@ -384,6 +392,7 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
     setConnectionStatus('closed');
     setClientId(null);
     setErrorState('');
+    setDataChannelState('closed');
   }, [setErrorState]);
 
   const transportStatus: TransportStatus = transportRef.current?.status ?? 'closed';
@@ -424,6 +433,7 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
   return {
     transportStatus,
     connectionStatus,
+    dataChannelState,
     clientId,
     error,
     errorDetails,
