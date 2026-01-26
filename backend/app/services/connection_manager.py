@@ -19,12 +19,16 @@ class ConnectionManager:
         self.peer_connections: dict[str, RTCPeerConnection] = {}
         self.data_channels: dict[str, RTCDataChannel] = {}
         self.frame_tasks: dict[str, asyncio.Task] = {}
+        self.processing_paused: dict[str, bool] = {}
+        self.processing_reset: dict[str, bool] = {}
         logger.info("Connection Manager initialized")
 
     async def connect(self, websocket: WebSocket, client_id: str) -> None:
         """Accept a WebSocket connection and register it."""
         await websocket.accept()
         self.active_connections[client_id] = websocket
+        self.processing_paused[client_id] = False
+        self.processing_reset[client_id] = False
         logger.info(
             "Client %s connected. Total: %d", client_id, len(self.active_connections)
         )
@@ -34,6 +38,8 @@ class ConnectionManager:
         self.active_connections.pop(client_id, None)
         pc = self.peer_connections.pop(client_id, None)
         self.data_channels.pop(client_id, None)
+        self.processing_paused.pop(client_id, None)
+        self.processing_reset.pop(client_id, None)
 
         task = self.frame_tasks.pop(client_id, None)
         if task and not task.done():
@@ -111,5 +117,7 @@ class ConnectionManager:
         self.peer_connections.clear()
         self.data_channels.clear()
         self.frame_tasks.clear()
+        self.processing_paused.clear()
+        self.processing_reset.clear()
 
         logger.info("Connection Manager shutdown complete")

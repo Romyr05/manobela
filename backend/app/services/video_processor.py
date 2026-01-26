@@ -115,7 +115,19 @@ async def process_video_frames(
                     logger.info("Frame is empty for %s", client_id)
                     break
 
+                if connection_manager.processing_reset.get(client_id, False):
+                    metric_manager = MetricManager()
+                    smoother = SequenceSmoother(alpha=0.8, max_missing=5)
+                    frame_count = 0
+                    processed_frames = 0
+                    start_time = time.perf_counter()
+                    last_process_time = time.perf_counter()
+                    connection_manager.processing_reset[client_id] = False
+
                 frame_count += 1
+                if connection_manager.processing_paused.get(client_id, False):
+                    last_process_time = time.perf_counter()
+                    continue
 
                 # Schedule frame processing at a fixed interval to avoid drift.
                 # The next processing time is derived from the previous scheduled time,
