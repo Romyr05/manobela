@@ -110,6 +110,18 @@ async def create_peer_connection(
                         client_id,
                         action,
                     )
+            try:
+                payload = message
+                if isinstance(payload, bytes):
+                    payload = payload.decode("utf-8")
+                data = json.loads(payload)
+            except (TypeError, ValueError, UnicodeDecodeError):
+                logger.debug("Ignoring non-JSON data channel message from %s", client_id)
+                return
+
+            if data.get("type") == "head_pose_recalibrate":
+                logger.info("Head pose recalibration requested by %s", client_id)
+                connection_manager.request_head_pose_recalibration(client_id)
 
     @pc.on("icecandidate")
     async def on_icecandidate(candidate):

@@ -26,9 +26,12 @@ interface UseWebRTCProps {
   rtcConfig?: RTCConfiguration;
 }
 
+export type DataChannelState = 'connecting' | 'open' | 'closing' | 'closed';
+
 interface UseWebRTCReturn {
   transportStatus: TransportStatus;
   connectionStatus: RTCPeerConnectionState;
+  dataChannelState: DataChannelState;
   clientId: string | null;
   error: string | null;
   errorDetails: string | null; // implement in return
@@ -41,9 +44,9 @@ interface UseWebRTCReturn {
 
   // Low-level escape hatches
   sendSignalingMessage: (msg: SignalingMessage) => void;
-  onSignalingMessage: (handler: (msg: SignalingMessage) => void) => void;
+  onSignalingMessage: (handler: (msg: SignalingMessage) => void) => () => void;
   sendDataMessage: (msg: any) => void;
-  onDataMessage: (handler: (msg: any) => void) => void;
+  onDataMessage: (handler: (msg: any) => void) => () => void;
 }
 
 /**
@@ -62,6 +65,7 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const transportRef = useRef<SignalingTransport | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
+  const [dataChannelState, setDataChannelState] = useState<DataChannelState>('closed');
 
   // Fan-out handler registries
   const signalingHandlers = useRef<((msg: SignalingMessage) => void)[]>([]);
@@ -98,6 +102,9 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
   // Allow external subscribers to observe raw signaling traffic
   const onSignalingMessage = useCallback((handler: (msg: SignalingMessage) => void) => {
     signalingHandlers.current.push(handler);
+    return () => {
+      signalingHandlers.current = signalingHandlers.current.filter((cb) => cb !== handler);
+    };
   }, []);
 
   // Core signaling message dispatcher
@@ -171,6 +178,9 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
   // Allow external subscribers to observe raw data channel traffic
   const onDataMessage = useCallback((handler: (msg: any) => void) => {
     dataChannelHandlers.current.push(handler);
+    return () => {
+      dataChannelHandlers.current = dataChannelHandlers.current.filter((cb) => cb !== handler);
+    };
   }, []);
 
   // Core data channel message dispatcher
@@ -207,10 +217,12 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
     (pc: RTCPeerConnection) => {
       const channel = pc.createDataChannel('data', { ordered: true });
       dataChannelRef.current = channel;
+      setDataChannelState(channel.readyState as DataChannelState);
 
       // @ts-ignore
       channel.onopen = () => {
         console.log('Data channel opened');
+        setDataChannelState('open');
         // maybe send initial handshake or keepalive
       };
 
@@ -223,11 +235,13 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
       // @ts-ignore
       channel.onclose = () => {
         console.log('Data channel closed');
+        setDataChannelState('closed');
       };
 
       // @ts-ignore
       channel.onerror = (err) => {
         console.error('Data channel error:', err);
+        setDataChannelState(channel.readyState as DataChannelState);
       };
 
       return channel;
@@ -287,6 +301,32 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
     },
     [sendSignalingMessage]
   );
+
+  const replaceOutgoingTracks = useCallback((nextStream: MediaStream | null) => {
+    const pc = pcRef.current;
+    if (!pc) return;
+    if (!nextStream) return;
+
+    const senders = pc.getSenders();
+
+    nextStream.getTracks().forEach((track) => {
+      const sender = senders.find((s) => s.track?.kind === track.kind);
+      if (sender) {
+        try {
+          sender.replaceTrack(track);
+        } catch (err) {
+          console.warn('Failed to replace sender track', err);
+        }
+        return;
+      }
+      pc.addTrack(track, nextStream);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!pcRef.current) return;
+    replaceOutgoingTracks(stream);
+  }, [stream, replaceOutgoingTracks]);
 
   /**
    * Main entry point.
@@ -387,9 +427,15 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
       pcRef.current = null;
     }
 
+    if (dataChannelRef.current) {
+      dataChannelRef.current.close();
+      dataChannelRef.current = null;
+    }
+
     setConnectionStatus('closed');
     setClientId(null);
     setErrorState('');
+    setDataChannelState('closed');
   }, [setErrorState]);
 
   const transportStatus: TransportStatus = transportRef.current?.status ?? 'closed';
@@ -430,6 +476,7 @@ export const useWebRTC = ({ url, stream }: UseWebRTCProps): UseWebRTCReturn => {
   return {
     transportStatus,
     connectionStatus,
+    dataChannelState,
     clientId,
     error,
     errorDetails,

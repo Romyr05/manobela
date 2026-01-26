@@ -26,6 +26,7 @@ class ConnectionManager:
         self.processing_reset: dict[str, bool] = {}
         self.session_started_at: dict[str, float] = {}
         self.session_expiry_tasks: dict[str, asyncio.Task] = {}
+        self.head_pose_recalibrate_requests: set[str] = set()
         logger.info("Connection Manager initialized")
 
     async def connect(self, websocket: WebSocket, client_id: str) -> None:
@@ -74,6 +75,7 @@ class ConnectionManager:
         self.processing_reset.pop(client_id, None)
         self.session_started_at.pop(client_id, None)
         self._cancel_expiry_task(client_id)
+        self.head_pose_recalibrate_requests.discard(client_id)
 
         task = self.frame_tasks.pop(client_id, None)
         if task and not task.done():
@@ -158,5 +160,17 @@ class ConnectionManager:
             if task and not task.done():
                 task.cancel()
         self.session_expiry_tasks.clear()
+        self.head_pose_recalibrate_requests.clear()
 
         logger.info("Connection Manager shutdown complete")
+
+    def request_head_pose_recalibration(self, client_id: str) -> None:
+        """Queue a head pose recalibration request for the next processed frame."""
+        self.head_pose_recalibrate_requests.add(client_id)
+
+    def consume_head_pose_recalibration(self, client_id: str) -> bool:
+        """Return True if a recalibration request was queued and consume it."""
+        if client_id in self.head_pose_recalibrate_requests:
+            self.head_pose_recalibrate_requests.remove(client_id)
+            return True
+        return False

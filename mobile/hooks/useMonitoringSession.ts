@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useWebRTC } from './useWebRTC';
+import { DataChannelState, useWebRTC } from './useWebRTC';
 import { MediaStream } from 'react-native-webrtc';
 import { sessionLogger } from '@/services/logging/session-logger';
 import { InferenceData } from '@/types/inference';
@@ -23,11 +23,13 @@ interface UseMonitoringSessionReturn {
   sessionDurationMs: number;
   transportStatus: string;
   connectionStatus: string;
+  dataChannelState: DataChannelState;
   error: string | null;
   hasCamera: boolean;
   errorDetails: string | null;
   start: () => Promise<void>;
   stop: () => Promise<void>;
+  recalibrateHeadPose: () => void;
 }
 
 /**
@@ -46,13 +48,16 @@ export const useMonitoringSession = ({
     transportStatus,
     connectionStatus,
     sendDataMessage,
+    dataChannelState,
     onDataMessage,
+    sendDataMessage,
     error,
     errorDetails,
   } = useWebRTC({ url, stream });
 
   // Tracks session lifecycle
   const [sessionState, setSessionState] = useState<SessionState>('idle');
+  const sessionStateRef = useRef<SessionState>('idle');
 
   // Use a ref to avoid re-rendering on every message
   const latestInferenceRef = useRef<InferenceData | null>(null);
@@ -129,6 +134,10 @@ export const useMonitoringSession = ({
     return () => clearInterval(timer);
   }, [sessionState, sessionStartedAt]);
 
+  useEffect(() => {
+    sessionStateRef.current = sessionState;
+  }, [sessionState]);
+
   // Subscribe to data channel messages
   useEffect(() => {
     const handler = (msg: any) => {
@@ -136,13 +145,16 @@ export const useMonitoringSession = ({
       latestInferenceRef.current = msg;
 
       // Update state only if UI is active and needs it
-      if (sessionState === 'active') {
+      if (sessionStateRef.current === 'active') {
         setInferenceData(msg);
       }
     };
 
-    onDataMessage(handler);
-  }, [onDataMessage, sessionState]);
+    const unsubscribe = onDataMessage(handler);
+    return () => {
+      unsubscribe();
+    };
+  }, [onDataMessage]);
 
   // Log metrics
   useEffect(() => {
@@ -209,11 +221,20 @@ export const useMonitoringSession = ({
     cleanup,
   ]);
 
+  const recalibrateHeadPose = useCallback(() => {
+    if (dataChannelState === 'open') {
+      sendDataMessage({ type: 'head_pose_recalibrate' });
+    } else {
+      console.warn('Data channel not open for recalibration');
+    }
+  }, [sendDataMessage, dataChannelState]);
+
   return {
     sessionState,
     clientId,
     transportStatus,
     connectionStatus,
+    dataChannelState,
     hasCamera: stream !== null,
     inferenceData,
     sessionDurationMs,
@@ -221,5 +242,6 @@ export const useMonitoringSession = ({
     errorDetails,
     start,
     stop,
+    recalibrateHeadPose,
   };
 };
