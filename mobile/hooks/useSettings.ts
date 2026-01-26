@@ -47,6 +47,7 @@ const useSettingsState = (): SettingsContextValue => {
       const storedSettings = await loadSettings();
       if (!mountedRef.current || id !== requestIdRef.current) return;
       setSettings(storedSettings);
+      sessionLogger.setUserLoggingEnabled(storedSettings.enableSessionLogging);
     } finally {
       if (mountedRef.current && id === requestIdRef.current) {
         setIsLoading(false);

@@ -84,6 +84,14 @@ export const sessionLogger = {
 
   /** Update user preference for logging */
   setUserLoggingEnabled: (value: boolean) => {
+    // If logging is being disabled, immediately clear any buffered metrics
+    if (userLoggingEnabled && !value) {
+      metricBuffer.length = 0;
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+    }
     userLoggingEnabled = value;
   },
 
@@ -253,7 +261,18 @@ export const sessionLogger = {
    * End the current session
    */
   endSession: async () => {
-    if (readOnly || !userLoggingEnabled) return; // block writes if read-only or user disabled logging
+    if (readOnly || !userLoggingEnabled) {
+      // block writes if read-only or user disabled logging,
+      // but still clear local session state to avoid stale IDs
+      currentSessionId = null;
+      lastLoggedAt = 0;
+      metricBuffer.length = 0;
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+      return;
+    }
 
     if (!currentSessionId) return;
 
