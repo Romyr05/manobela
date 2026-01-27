@@ -3,6 +3,7 @@ import { View, Alert, useColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
 import { OSMView, type OSMViewRef } from 'expo-osm-sdk';
 import * as Location from 'expo-location';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { MapLocation } from '@/types/maps';
 import { useRouteCalculation } from '@/hooks/maps/useRouteCalculation';
 import { useLocationPermission } from '@/hooks/maps/useLocationPermission';
@@ -10,13 +11,18 @@ import { RouteControls } from '@/components/maps/route-control';
 import { RouteInfo } from '@/components/maps/route-info';
 import { LocationSearchBoxes } from '@/components/maps/location-search-boxes';
 import { ZoomControls } from '@/components/maps/zoom-controls';
+import { useTheme } from '@react-navigation/native';
 
 const FALLBACK_INITIAL_CENTER = { latitude: 40.7128, longitude: -74.006 };
 const INITIAL_ZOOM = 20;
 
 export default function MapsScreen() {
   const colorScheme = useColorScheme();
+  const { colors } = useTheme();
+
   const mapRef = useRef<OSMViewRef>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const bottomSheetSnapPoints = useMemo(() => ['20%', '50%', '75%'], []);
   const [startLocation, setStartLocation] = useState<MapLocation | null>(null);
   const [destinationLocation, setDestinationLocation] = useState<MapLocation | null>(null);
   const [initialCenter, setInitialCenter] = useState<{
@@ -97,6 +103,15 @@ export default function MapsScreen() {
       );
     }
   }, [isMapReady, initialCenter]);
+
+  // Handle bottom sheet visibility when route changes
+  useEffect(() => {
+    if (route && bottomSheetRef.current) {
+      bottomSheetRef.current.expand();
+    } else if (!route && bottomSheetRef.current) {
+      bottomSheetRef.current.close();
+    }
+  }, [route]);
 
   // Convert locations to markers array
   const markers = useMemo(() => {
@@ -301,7 +316,21 @@ export default function MapsScreen() {
         isGettingUserLocation={isGettingUserLocation}
       />
 
-      <RouteInfo route={route} formatDistance={formatDistance} formatDuration={formatDuration} />
+      <BottomSheet
+        ref={bottomSheetRef}
+        snapPoints={bottomSheetSnapPoints}
+        enableDynamicSizing={false}
+        backgroundStyle={{ backgroundColor: colors.background }}
+        handleStyle={{ backgroundColor: colors.card }}
+        handleIndicatorStyle={{ backgroundColor: colors.primary }}>
+        <BottomSheetView className="px-2 py-2">
+          <RouteInfo
+            route={route}
+            formatDistance={formatDistance}
+            formatDuration={formatDuration}
+          />
+        </BottomSheetView>
+      </BottomSheet>
     </View>
   );
 }

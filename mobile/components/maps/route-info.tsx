@@ -15,7 +15,7 @@ export function RouteInfo({ route, formatDistance, formatDuration }: RouteInfoPr
   if (!route) return null;
 
   return (
-    <View className="absolute bottom-4 left-4 right-4 rounded-lg bg-background p-4 shadow-lg">
+    <View className="p-2">
       <View className="flex-row items-center justify-between">
         {/* Distance */}
         <View className="flex-1 flex-row items-center gap-3">
