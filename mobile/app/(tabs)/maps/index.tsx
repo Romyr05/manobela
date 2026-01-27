@@ -9,8 +9,10 @@ import { useLocationPermission } from '@/hooks/maps/useLocationPermission';
 import { useMapInitialization } from '@/hooks/maps/useMapInitialization';
 import { useMapMarkers } from '@/hooks/maps/useMapMarkers';
 import { useLocationHandlers } from '@/hooks/maps/useLocationHandlers';
+import { useNavigationManagement } from '@/hooks/maps/useNavigationManagement';
 import { RouteControls } from '@/components/maps/map-control';
 import { RouteInfo } from '@/components/maps/route-info';
+import { NavigationPanel } from '@/components/maps/navigation-panel';
 import { LocationSearchBoxes } from '@/components/maps/location-search-boxes';
 import { useLocation } from '@/hooks/maps/useLocation';
 import { useColorScheme } from 'nativewind';
@@ -52,6 +54,16 @@ export default function MapsScreen() {
     formatDuration,
   } = useRouteCalculation({ mapRef });
 
+  // Navigation management
+  const {
+    navigationState,
+    startNavigation,
+    stopNavigation,
+    handleLocationUpdate,
+    formatDistanceMeters,
+    formatTimeSeconds,
+  } = useNavigationManagement({ mapRef, route });
+
   // Location handlers
   const {
     isGettingUserLocation,
@@ -81,12 +93,21 @@ export default function MapsScreen() {
 
   // Handle clear route (stop)
   const handleClearRoute = useCallback(() => {
+    if (navigationState.isNavigating) {
+      stopNavigation();
+    }
     clearRoute();
     setStartLocation(null);
     setDestinationLocation(null);
-  }, [clearRoute, setStartLocation, setDestinationLocation]);
+  }, [
+    clearRoute,
+    setStartLocation,
+    setDestinationLocation,
+    navigationState.isNavigating,
+    stopNavigation,
+  ]);
 
-  // Expand/collapse bottom sheet based on route presence
+  // Expand/collapse bottom sheet based on route and navigation state
   useEffect(() => {
     const sheet = bottomSheetRef.current;
     if (!sheet) return;
@@ -94,9 +115,9 @@ export default function MapsScreen() {
     if (route) {
       sheet.snapToIndex(0);
     } else {
-      sheet.close(); // closed
+      sheet.close();
     }
-  }, [route]);
+  }, [route, navigationState.isNavigating]);
 
   // Check permission on mount
   useEffect(() => {
@@ -135,6 +156,9 @@ export default function MapsScreen() {
         onMarkerPress={(id) => {
           console.log('Marker pressed:', id);
         }}
+        onUserLocationChange={(location) => {
+          handleLocationUpdate(location);
+        }}
         styleUrl={
           colorScheme === 'dark'
             ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
@@ -146,12 +170,14 @@ export default function MapsScreen() {
         onUseCurrentLocation={handleUseCurrentLocation}
         onCalculateRoute={handleCalculateRoute}
         onClearRoute={handleClearRoute}
+        onStartNavigation={startNavigation}
         onZoomIn={mapRef.current?.zoomIn || (() => {})}
         onZoomOut={mapRef.current?.zoomOut || (() => {})}
         hasRoute={!!route}
         isCalculating={isCalculating}
         hasCurrentLocation={!!startLocation}
         isGettingUserLocation={isGettingUserLocation}
+        isNavigating={navigationState.isNavigating}
         className="absolute bottom-32 right-4"
       />
 
@@ -164,11 +190,24 @@ export default function MapsScreen() {
         handleStyle={{ backgroundColor: colors.card }}
         handleIndicatorStyle={{ backgroundColor: colors.primary }}>
         <BottomSheetView className="px-2 py-2">
-          <RouteInfo
-            route={route}
-            formatDistance={formatDistance}
-            formatDuration={formatDuration}
-          />
+          {navigationState.isNavigating ? (
+            <NavigationPanel
+              isNavigating={navigationState.isNavigating}
+              distanceRemaining={navigationState.distanceRemaining}
+              timeRemaining={navigationState.timeRemaining}
+              nextTurnInstruction={navigationState.nextTurnInstruction}
+              progress={navigationState.progress}
+              onStopNavigation={stopNavigation}
+              formatDistanceMeters={formatDistanceMeters}
+              formatTimeSeconds={formatTimeSeconds}
+            />
+          ) : (
+            <RouteInfo
+              route={route}
+              formatDistance={formatDistance}
+              formatDuration={formatDuration}
+            />
+          )}
         </BottomSheetView>
       </BottomSheet>
     </View>
