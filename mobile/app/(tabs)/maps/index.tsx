@@ -10,10 +10,17 @@ import { RouteControls } from '../../../components/maps/route-control';
 import { RouteInfo } from '../../../components/maps/route-info';
 import { LocationSearchBoxes } from '../../../components/maps/location-search-boxes';
 
+const FALLBACK_INITIAL_CENTER = { latitude: 40.7128, longitude: -74.006 };
+const INITIAL_ZOOM = 20;
+
 export default function MapsScreen() {
   const mapRef = useRef<OSMViewRef>(null);
   const [startLocation, setStartLocation] = useState<MapLocation | null>(null);
   const [destinationLocation, setDestinationLocation] = useState<MapLocation | null>(null);
+  const [initialCenter, setInitialCenter] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   const {
     route,
@@ -65,6 +72,26 @@ export default function MapsScreen() {
     }
   }, [requestPermission]);
 
+  useEffect(() => {
+    const init = async () => {
+      const userLocation = await getUserLocation();
+      if (userLocation) {
+        setInitialCenter(userLocation.coordinate);
+
+        // center map after ref is ready
+        mapRef.current?.animateToLocation(
+          userLocation.coordinate.latitude,
+          userLocation.coordinate.longitude,
+          INITIAL_ZOOM
+        );
+
+        setStartLocation(userLocation); // optional, if you want start to be current location
+      }
+    };
+
+    init();
+  }, []);
+
   // Convert locations to markers array
   const markers = useMemo(() => {
     const markersArray = [];
@@ -105,7 +132,7 @@ export default function MapsScreen() {
       mapRef.current?.animateToLocation(
         location.coordinate.latitude,
         location.coordinate.longitude,
-        15
+        INITIAL_ZOOM
       );
 
       // If destination exists, automatically calculate route
@@ -125,7 +152,7 @@ export default function MapsScreen() {
       mapRef.current?.animateToLocation(
         location.coordinate.latitude,
         location.coordinate.longitude,
-        15
+        INITIAL_ZOOM
       );
 
       // If no start location is set, automatically get user's location
@@ -182,7 +209,7 @@ export default function MapsScreen() {
         mapRef.current?.animateToLocation(
           location.coordinate.latitude,
           location.coordinate.longitude,
-          15
+          INITIAL_ZOOM
         );
       }
       setIsGettingUserLocation(false);
@@ -210,6 +237,7 @@ export default function MapsScreen() {
   return (
     <View className="flex-1">
       <Stack.Screen options={{ title: 'Maps' }} />
+
       <LocationSearchBoxes
         startLocation={startLocation}
         destinationLocation={destinationLocation}
@@ -218,16 +246,19 @@ export default function MapsScreen() {
         onUseCurrentLocation={handleUseCurrentLocation}
         isGettingUserLocation={isGettingUserLocation}
       />
+
       <OSMView
         ref={mapRef}
         style={{ flex: 1 }}
-        initialCenter={{ latitude: 40.7128, longitude: -74.006 }}
-        initialZoom={13}
+        initialCenter={initialCenter ?? FALLBACK_INITIAL_CENTER}
+        initialZoom={INITIAL_ZOOM}
+        followUserLocation={true}
         markers={markers}
         onMarkerPress={(id) => {
           console.log('Marker pressed:', id);
         }}
       />
+
       <RouteControls
         onUseCurrentLocation={handleUseCurrentLocation}
         onClearRoute={handleClearRoute}
@@ -236,6 +267,7 @@ export default function MapsScreen() {
         hasCurrentLocation={!!startLocation}
         isGettingUserLocation={isGettingUserLocation}
       />
+
       <RouteInfo route={route} formatDistance={formatDistance} formatDuration={formatDuration} />
     </View>
   );
