@@ -1,7 +1,7 @@
 import { View, ActivityIndicator, ScrollView, Pressable, Image, StyleSheet } from 'react-native';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Video, ResizeMode, type AVPlaybackStatus } from 'expo-av';
+import { useMemo, useState } from 'react';
+import { Video, ResizeMode } from 'expo-av';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { FacialLandmarkOverlay } from '@/components/facial-landmark-overlay';
@@ -9,23 +9,14 @@ import { ObjectDetectionOverlay } from '@/components/object-detection-overlay';
 
 import { useSettings } from '@/hooks/useSettings';
 import { useVideoUpload } from '@/hooks/useVideoUpload';
+import { useUploadPlayback } from '@/hooks/useUploadPlayback';
 import {
   formatBytes,
   formatDuration,
   formatJsonFull,
   formatJsonPreview,
-  parseTimestampSeconds,
 } from '@/utils/videoFormatter';
-import type { ObjectDetection } from '@/types/inference';
-import type { VideoFrameResult } from '@/types/video';
-
-type FrameWithTimestamp = VideoFrameResult & { timestampSec: number };
-type OverlaySnapshot = {
-  landmarks: number[] | null;
-  detections: ObjectDetection[] | null;
-  resolution: { width: number; height: number } | null;
-  atMs: number;
-};
+import { formatPlaybackTime } from '@/utils/uploadPlayback';
 
 export default function UploadsScreen() {
   const { settings } = useSettings();
@@ -46,128 +37,27 @@ export default function UploadsScreen() {
   } = useVideoUpload(apiBaseUrl);
 
   const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({});
-  const [playbackPositionMs, setPlaybackPositionMs] = useState(0);
-  const [playbackDurationMs, setPlaybackDurationMs] = useState<number | null>(null);
-  const [playbackView, setPlaybackView] = useState({ width: 0, height: 0 });
   const [showOverlays, setShowOverlays] = useState(true);
-  const [overlaySnapshot, setOverlaySnapshot] = useState<OverlaySnapshot | null>(null);
-
-  const groups = useMemo(() => result?.groups ?? [], [result]);
-  const sortedGroups = useMemo(
-    () => [...groups].sort((a, b) => a.start_sec - b.start_sec),
-    [groups]
-  );
-  const framesWithTime = useMemo<FrameWithTimestamp[]>(() => {
-    if (!result?.frames?.length) return [];
-    return result.frames
-      .map((frame) => {
-        const timestampSec = parseTimestampSeconds(frame.timestamp);
-        if (timestampSec === null) return null;
-        return { ...frame, timestampSec };
-      })
-      .filter((frame): frame is FrameWithTimestamp => frame !== null)
-      .sort((a, b) => a.timestampSec - b.timestampSec);
-  }, [result?.frames]);
-
-  useEffect(() => {
-    setPlaybackPositionMs(0);
-    setPlaybackDurationMs(null);
-    setOverlaySnapshot(null);
-  }, [selectedVideo?.uri]);
-
-  const handlePlaybackStatus = useCallback((status: AVPlaybackStatus) => {
-    if (!status.isLoaded) return;
-    setPlaybackPositionMs(status.positionMillis ?? 0);
-    if (status.durationMillis != null) {
-      setPlaybackDurationMs(status.durationMillis);
-    }
-  }, []);
-
-  const playbackAspectRatio = useMemo(() => {
-    const width = result?.video_metadata?.resolution?.width ?? 16;
-    const height = result?.video_metadata?.resolution?.height ?? 9;
-    if (height <= 0) return 16 / 9;
-    return width / height;
-  }, [result?.video_metadata?.resolution?.width, result?.video_metadata?.resolution?.height]);
-
-  const playbackSeconds = playbackPositionMs / 1000;
-  const activeGroup = useMemo(() => {
-    if (sortedGroups.length === 0) return null;
-    const match = sortedGroups.find(
-      (group) => playbackSeconds >= group.start_sec && playbackSeconds < group.end_sec
-    );
-    if (match) return match;
-    if (playbackSeconds < sortedGroups[0].start_sec) return sortedGroups[0];
-    return sortedGroups[sortedGroups.length - 1];
-  }, [playbackSeconds, sortedGroups]);
-
-  const activeFrame = useMemo<FrameWithTimestamp | null>(() => {
-    if (framesWithTime.length === 0) return null;
-    const index = findFrameIndex(framesWithTime, playbackSeconds);
-    return index === null ? null : framesWithTime[index];
-  }, [framesWithTime, playbackSeconds]);
-
-  useEffect(() => {
-    const HOLD_MS = 450;
-
-    if (!showOverlays || !activeFrame) {
-      setOverlaySnapshot(null);
-      return;
-    }
-
-    const hasLandmarks = Boolean(activeFrame.face_landmarks?.length);
-    const hasDetections = Boolean(activeFrame.object_detections?.length);
-
-    if (hasLandmarks || hasDetections) {
-      setOverlaySnapshot({
-        landmarks: activeFrame.face_landmarks ?? null,
-        detections: activeFrame.object_detections ?? null,
-        resolution: activeFrame.resolution ?? null,
-        atMs: playbackPositionMs,
-      });
-      return;
-    }
-
-    setOverlaySnapshot((prev) => {
-      if (!prev) return null;
-      const delta = playbackPositionMs - prev.atMs;
-      if (delta < 0) return null;
-      if (delta <= HOLD_MS) return prev;
-      return null;
-    });
-  }, [activeFrame, playbackPositionMs, showOverlays]);
-
-  const fallbackLandmarks = activeGroup?.aggregate.face_landmarks ?? null;
-  const fallbackDetections = activeGroup?.aggregate.object_detections ?? null;
-
-  const overlayResolution =
-    overlaySnapshot?.resolution ??
-    activeFrame?.resolution ??
-    activeGroup?.aggregate.resolution ??
-    result?.video_metadata?.resolution ??
-    null;
-  const overlayLandmarks = showOverlays
-    ? overlaySnapshot
-      ? overlaySnapshot.landmarks
-      : fallbackLandmarks
-    : null;
-  const overlayDetections = showOverlays
-    ? overlaySnapshot
-      ? overlaySnapshot.detections
-      : fallbackDetections
-    : null;
-  const canRenderOverlay =
-    Boolean(overlayResolution) && playbackView.width > 0 && playbackView.height > 0;
-  const hasOverlayData =
-    Boolean(overlayLandmarks?.length) || Boolean(overlayDetections?.length);
-
-  const totalDurationMs =
-    playbackDurationMs ??
-    (result?.video_metadata?.duration_sec
-      ? Math.round(result.video_metadata.duration_sec * 1000)
-      : null);
-  const groupIntervalSec =
-    sortedGroups.length > 0 ? Math.round(sortedGroups[0].end_sec - sortedGroups[0].start_sec) : 0;
+  const {
+    groups,
+    activeGroup,
+    playbackAspectRatio,
+    playbackPositionMs,
+    totalDurationMs,
+    playbackView,
+    handlePlaybackStatus,
+    handlePlaybackLayout,
+    overlayLandmarks,
+    overlayDetections,
+    overlayResolution,
+    canRenderOverlay,
+    hasOverlayData,
+    groupIntervalSec,
+  } = useUploadPlayback({
+    result,
+    selectedVideoUri: selectedVideo?.uri,
+    showOverlays,
+  });
 
   return (
     <ScrollView className="flex-1 px-4 py-6">
@@ -257,10 +147,7 @@ export default function UploadsScreen() {
               <View
                 className="relative overflow-hidden rounded-md border border-border bg-black"
                 style={{ width: '100%', aspectRatio: playbackAspectRatio }}
-                onLayout={(event) => {
-                  const { width, height } = event.nativeEvent.layout;
-                  setPlaybackView({ width, height });
-                }}>
+                onLayout={handlePlaybackLayout}>
                 {selectedVideo ? (
                   <Video
                     source={{ uri: selectedVideo.uri }}
@@ -388,47 +275,3 @@ export default function UploadsScreen() {
     </ScrollView>
   );
 }
-
-const formatPlaybackTime = (durationMs: number | null) => {
-  if (durationMs === null || Number.isNaN(durationMs)) return '--:--';
-  const totalSeconds = Math.max(0, Math.floor(durationMs / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  }
-
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-};
-
-const findFrameIndex = (frames: FrameWithTimestamp[], timeSec: number) => {
-  if (frames.length === 0) return null;
-
-  if (timeSec <= frames[0].timestampSec) return 0;
-  const lastIndex = frames.length - 1;
-  if (timeSec >= frames[lastIndex].timestampSec) return lastIndex;
-
-  let low = 0;
-  let high = lastIndex;
-
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    const current = frames[mid].timestampSec;
-
-    if (current === timeSec) return mid;
-    if (current < timeSec) {
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
-  }
-
-  const afterIndex = Math.min(lastIndex, Math.max(0, low));
-  const beforeIndex = Math.min(lastIndex, Math.max(0, high));
-  const afterDiff = Math.abs(frames[afterIndex].timestampSec - timeSec);
-  const beforeDiff = Math.abs(timeSec - frames[beforeIndex].timestampSec);
-
-  return afterDiff <= beforeDiff ? afterIndex : beforeIndex;
-};
