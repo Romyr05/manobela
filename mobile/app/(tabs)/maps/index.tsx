@@ -49,6 +49,7 @@ export default function MapsScreen() {
   // Initial map setup
   const {
     initialCenter,
+    isMapReady,
     setIsMapReady,
     startLocation,
     setStartLocation,
@@ -96,7 +97,7 @@ export default function MapsScreen() {
     handleLocationUpdate,
     formatDistanceMeters,
     formatTimeSeconds,
-  } = useNavigationManagement({ mapRef, route, onNavigationComplete: handleStopNavigation });
+  } = useNavigationManagement({ mapRef, route, isMapReady, onNavigationComplete: handleStopNavigation });
 
   // Update ref with stopNavigation
   useEffect(() => {

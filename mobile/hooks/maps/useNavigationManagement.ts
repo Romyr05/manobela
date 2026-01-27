@@ -21,6 +21,7 @@ interface NavigationState {
 interface UseNavigationManagementProps {
   mapRef: React.RefObject<OSMViewRef | null>;
   route: Route | null;
+  isMapReady: boolean;
   onNavigationComplete?: () => void;
 }
 
@@ -56,6 +57,7 @@ const calculateDistance = (from: Coordinate, to: Coordinate): number => {
 export const useNavigationManagement = ({
   mapRef,
   route,
+  isMapReady,
   onNavigationComplete,
 }: UseNavigationManagementProps) => {
   const [navigationState, setNavigationState] = useState<NavigationState>({
@@ -213,7 +215,7 @@ export const useNavigationManagement = ({
 
         // Update camera to follow user
         requestAnimationFrame(() => {
-          if (!isMountedRef.current || !mapRef.current) return;
+          if (!isMountedRef.current || !mapRef.current || !isMapReady) return;
 
           // Calculate bearing to next step
           if (currentStepIndex < route.coordinates.length - 1) {
@@ -238,12 +240,12 @@ export const useNavigationManagement = ({
         };
       });
     },
-    [route, findClosestStepIndex, calculateRemaining, getNextTurnInstruction, mapRef]
+    [route, findClosestStepIndex, calculateRemaining, getNextTurnInstruction, mapRef, isMapReady]
   );
 
   // Start navigation
   const startNavigation = useCallback(async () => {
-    if (!route || !mapRef.current || route.coordinates.length === 0) return;
+    if (!route || !mapRef.current || !isMapReady || route.coordinates.length === 0) return;
 
     const startLocation = route.coordinates[0];
     const destinationLocation = route.coordinates[route.coordinates.length - 1];
@@ -266,7 +268,7 @@ export const useNavigationManagement = ({
       // Animate to start location
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => {
-          if (isMountedRef.current && mapRef.current) {
+          if (isMountedRef.current && mapRef.current && isMapReady) {
             mapRef.current.animateToLocation?.(startLocation.latitude, startLocation.longitude, 18);
           }
           setTimeout(resolve, 250);
@@ -276,7 +278,7 @@ export const useNavigationManagement = ({
       // Set pitch
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => {
-          if (isMountedRef.current && mapRef.current) {
+          if (isMountedRef.current && mapRef.current && isMapReady) {
             mapRef.current.setPitch?.(45);
           }
           setTimeout(resolve, 250);
@@ -286,7 +288,7 @@ export const useNavigationManagement = ({
       // Calculate and set bearing
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => {
-          if (isMountedRef.current && mapRef.current) {
+          if (isMountedRef.current && mapRef.current && isMapReady) {
             const bearing = calculateBearing(startLocation, destinationLocation);
             mapRef.current.setBearing?.(bearing);
           }
@@ -295,13 +297,13 @@ export const useNavigationManagement = ({
       });
 
       // Start location tracking
-      if (isMountedRef.current && mapRef.current) {
+      if (isMountedRef.current && mapRef.current && isMapReady) {
         mapRef.current.startLocationTracking?.();
       }
     } catch (error) {
       console.error('Error starting navigation:', error);
     }
-  }, [route, mapRef, calculateRemaining]);
+  }, [route, mapRef, isMapReady, calculateRemaining]);
 
   // Stop navigation
   const stopNavigation = useCallback(async () => {
@@ -314,7 +316,7 @@ export const useNavigationManagement = ({
     try {
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => {
-          if (isMountedRef.current && mapRef.current) {
+          if (isMountedRef.current && mapRef.current && isMapReady) {
             mapRef.current.setPitch?.(0);
           }
           setTimeout(resolve, 200);
@@ -323,7 +325,7 @@ export const useNavigationManagement = ({
     } catch (error) {
       console.error('Error stopping navigation:', error);
     }
-  }, [mapRef]);
+  }, [mapRef, isMapReady]);
 
   // Update ref with stopNavigation
   useEffect(() => {
