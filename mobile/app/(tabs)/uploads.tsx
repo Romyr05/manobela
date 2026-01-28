@@ -56,7 +56,7 @@ export default function UploadsScreen() {
   });
 
   return (
-    <ScrollView className="flex-1 px-4 pb-12 pt-6" contentContainerStyle={{ flexGrow: 1 }}>
+    <ScrollView className="flex-1 px-4 py-4" contentContainerStyle={{ flexGrow: 1 }}>
       <View className="gap-3">
         <Button onPress={handleSelectVideo} variant="secondary">
           <FileVideoCamera color={colors.primary} size={18} />
